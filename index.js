@@ -39,10 +39,17 @@ const mysqlConfig = {
     database: process.env.DB_NAME,
 }
 
+const allowedOrigins = ['https://tu-dominio-en-hostinger.com', 'https://alquiladora-romero-backed-1.onrender.com'];
 
 app.use(cors({
-    origin: "http://localhost:3006", 
-    credentials: true 
+  origin: function (origin, callback) {
+      if (allowedOrigins.includes(origin) || !origin) {
+          callback(null, true);
+      } else {
+          callback(new Error('No permitido por CORS'));
+      }
+  },
+  credentials: true
 }));
 
 app.use(express.json());
