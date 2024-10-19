@@ -1,0 +1,30 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "argon2": "^0.41.1",
+    "axios": "^1.7.7",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dns": "^0.2.2",
+    "express": "^4.21.1",
+    "express-rate-limit": "^7.4.1",
+    "jsonwebtoken": "^9.0.2",
+    "mailchecker": "^6.0.11",
+    "moment-timezone": "^0.5.46",
+    "mysql": "^2.18.1",
+    "mysql2": "^3.11.3",
+    "node-cron": "^3.0.3",
+    "node-macaddress": "^0.2.4",
+    "uuid": "^10.0.0",
+    "winston": "^3.15.0"
+  }
+}
