@@ -48,7 +48,10 @@ function decryptClientId(encrypted) {
 }
 
 function getClientIp(req) {
-  return req.headers["x-forwarded-for"] || req.connection.remoteAddress;
+  const forwarded = req.headers["x-forwarded-for"];
+  const ip = forwarded ? forwarded.split(/, /)[0] : req.connection.remoteAddress;
+  return ip;
+
 }
 
 function getOrCreateClientId(req, res) {
@@ -228,7 +231,7 @@ usuarioRouter.post("/login", async (req, res, next) => {
 
 //================================Manejo de intentos fallidos de login=======================================
 async function handleFailedAttempt(ip, clientId, db) {
-  const [result] = await db.query("SELECT * FROM tblipbloqueados WHERE Ip = ? OR clienteId = ?", [ip, clientId]);
+  const [result] = await db.query("SELECT * FROM tblipbloqueados WHERE clienteId = ?", [clientId]);
 
   const currentDate = new Date();
   const fechaActual = currentDate.toISOString().split('T')[0];
@@ -243,10 +246,10 @@ async function handleFailedAttempt(ip, clientId, db) {
 
     if (newAttempts >= MAX_FAILED_ATTEMPTS) {
       const lockUntil = new Date(Date.now() + LOCK_TIME);
-      await db.query("UPDATE tblipbloqueados SET Intentos = ?, Fecha = ?, Hora = ?, lock_until = ? WHERE Ip = ? OR clienteId = ?", 
+      await db.query("UPDATE tblipbloqueados SET Intentos = ?, Fecha = ?, Hora = ?, lock_until = ? WHERE clienteId = ?", 
         [newAttempts, fechaActual, horaActual, lockUntil, ip, clientId]);
     } else {
-      await db.query("UPDATE tblipbloqueados SET Intentos = ?, Fecha = ?, Hora = ? WHERE Ip = ? OR clienteId = ?", 
+      await db.query("UPDATE tblipbloqueados SET Intentos = ?, Fecha = ?, Hora = ? WHERE clienteId = ?", 
         [newAttempts, fechaActual, horaActual, ip, clientId]);
     }
   }
