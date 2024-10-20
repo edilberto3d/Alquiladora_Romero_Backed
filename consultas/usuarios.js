@@ -227,10 +227,11 @@ function getClientIp(req) {
       if (newAttempts >= MAX_FAILED_ATTEMPTS) {
         const lockUntil = new Date(Date.now() + LOCK_TIME);
         await db.query("UPDATE tblipbloqueados SET Intentos = ?, Fecha = ?, Hora = ?, lock_until = ? WHERE clienteId = ?", 
-          [newAttempts, fechaActual, horaActual, lockUntil, ip, clientId]);
+          [newAttempts, fechaActual, horaActual, lockUntil, clientId]);
       } else {
         await db.query("UPDATE tblipbloqueados SET Intentos = ?, Fecha = ?, Hora = ? WHERE clienteId = ?", 
-          [newAttempts, fechaActual, horaActual, ip, clientId]);
+          [newAttempts, fechaActual, horaActual, clientId]);
+        
       }
     }
 
@@ -251,26 +252,26 @@ function getClientIp(req) {
     }
     try {
       const decoded = jwt.verify(token, SECRET_KEY); 
+      const now = Math.floor(Date.now() / 1000);
 
-      console.log("Valor de decoded", decoded);
-      // Generamos un nuevo token con nueva expiración y lo reescribimos en la cookie
-      const newToken = jwt.sign({ id: decoded.id, rol: decoded.rol }, SECRET_KEY, { expiresIn: '10m' }); 
-      console.log("Valor de newToken", newToken);
-
+    // Si el token expira en menos de 2 minutos, renovamos el token
+    if (decoded.exp - now < 2 * 60) {
+      const newToken = jwt.sign({ id: decoded.id, rol: decoded.rol }, SECRET_KEY, { expiresIn: '10m' });
       res.cookie("sesionToken", newToken, {
         httpOnly: true,
         secure: true,
         sameSite: "Strict",
         maxAge: TOKEN_EXPIRATION_TIME,
       });
-      req.user = decoded;
-
-      next(); 
-
-    } catch (error) {
-      return res.status(401).json({ message: "Token inválido o caducado." });
     }
-  };
+
+    req.user = decoded;
+    next();
+  } catch (error) {
+    return res.status(401).json({ message: "Token inválido o caducado." });
+  }
+};
+
 
   // Ruta protegida 
   usuarioRouter.get("/perfil", verifyToken, (req, res) => {
@@ -292,5 +293,7 @@ function getClientIp(req) {
       res.json({ message: "Sesión cerrada correctamente." });
   });
 
+
+  
 
   module.exports = usuarioRouter;
