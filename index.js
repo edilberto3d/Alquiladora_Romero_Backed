@@ -19,7 +19,7 @@ const logger = winston.createLogger({
       winston.format.json()
     ),
     transports: [
-      // Guardamos los errores en un archivo llamado error.log
+     
       new winston.transports.File({ filename: "error.log" }),
     ],
   });
@@ -39,18 +39,24 @@ const mysqlConfig = {
     database: process.env.DB_NAME,
 }
 
-const allowedOrigins = ['https://tu-dominio-en-hostinger.com', 'https://alquiladora-romero-backed-1.onrender.com'];
+const allowedOrigins = ['http://localhost:3000'];
 
 app.use(cors({
   origin: function (origin, callback) {
-      if (allowedOrigins.includes(origin) || !origin) {
-          callback(null, true);
-      } else {
-          callback(new Error('No permitido por CORS'));
-      }
+    if (allowedOrigins.includes(origin) || !origin) {
+      callback(null, true);
+    } else {
+      callback(new Error('No permitido por CORS'));
+    }
   },
-  credentials: true
+  methods: ['GET', 'POST', 'PUT', 'DELETE'], 
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true, 
 }));
+
+
+app.options('*', cors());
+
 
 app.use(express.json());
 
