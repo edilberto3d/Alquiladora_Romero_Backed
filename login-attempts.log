@@ -780,3 +780,18 @@
 {"level":"info","message":"Usuario 16 inició sesión desde IP: ::1 y clienteId: 5ff2c198-e831-4248-be0f-f82e9ad0631c"}
 {"level":"info","message":"Intento de inicio de sesión desde IP: ::1, clientId: 26132150-df31-49f9-9ebc-c9b38b6df3a1"}
 {"level":"info","message":"Usuario 16 inició sesión desde IP: ::1 y clienteId: 26132150-df31-49f9-9ebc-c9b38b6df3a1"}
+{"level":"info","message":"Intento de inicio de sesión desde IP: ::1, clientId: 26132150-df31-49f9-9ebc-c9b38b6df3a1"}
+{"level":"info","message":"Usuario 21 inició sesión desde IP: ::1 y clienteId: 26132150-df31-49f9-9ebc-c9b38b6df3a1"}
+{"level":"info","message":"Intento de inicio de sesión desde IP: ::1, clientId: 26132150-df31-49f9-9ebc-c9b38b6df3a1"}
+{"level":"warn","message":"Intento fallido desde IP: ::1 y clientId: 26132150-df31-49f9-9ebc-c9b38b6df3a1"}
+{"level":"info","message":"Intento de inicio de sesión desde IP: ::1, clientId: 26132150-df31-49f9-9ebc-c9b38b6df3a1"}
+{"level":"warn","message":"Intento fallido desde IP: ::1 y clientId: 26132150-df31-49f9-9ebc-c9b38b6df3a1"}
+{"level":"info","message":"Intento de inicio de sesión desde IP: ::1, clientId: 26132150-df31-49f9-9ebc-c9b38b6df3a1"}
+{"level":"warn","message":"Intento fallido desde IP: ::1 y clientId: 26132150-df31-49f9-9ebc-c9b38b6df3a1"}
+{"level":"info","message":"Intento de inicio de sesión desde IP: ::1, clientId: 26132150-df31-49f9-9ebc-c9b38b6df3a1"}
+{"level":"warn","message":"Intento fallido desde IP: ::1 y clientId: 26132150-df31-49f9-9ebc-c9b38b6df3a1"}
+{"level":"info","message":"Intento de inicio de sesión desde IP: ::1, clientId: 26132150-df31-49f9-9ebc-c9b38b6df3a1"}
+{"level":"warn","message":"Intento fallido desde IP: ::1 y clientId: 26132150-df31-49f9-9ebc-c9b38b6df3a1"}
+{"level":"info","message":"Intento de inicio de sesión desde IP: ::1, clientId: 26132150-df31-49f9-9ebc-c9b38b6df3a1"}
+{"level":"info","message":"Intento de inicio de sesión desde IP: ::1, clientId: 26132150-df31-49f9-9ebc-c9b38b6df3a1"}
+{"level":"info","message":"Usuario 21 inició sesión desde IP: ::1 y clienteId: 26132150-df31-49f9-9ebc-c9b38b6df3a1"}
