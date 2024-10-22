@@ -5,6 +5,7 @@ const cron = require("node-cron");
 const moment = require('moment-timezone'); 
 const axios = require('axios');
 const winston = require("winston");
+require("winston-daily-rotate-file");
 
 //iMPORTAMOS LAS CONSULTAS
 const usuarios=require('./consultas/usuarios');
@@ -12,17 +13,25 @@ const email=require('./consultas/email')
 
 
 
+const transport = new winston.transports.DailyRotateFile({
+  filename: 'logs/error-%DATE%.log',
+  datePattern: 'YYYY-MM-DD',
+  zippedArchive: true,
+  maxSize: '20m',
+  maxFiles: '14d',
+});
+
 const logger = winston.createLogger({
-    level: "error",
-    format: winston.format.combine(
-      winston.format.timestamp(),
-      winston.format.json()
-    ),
-    transports: [
-     
-      new winston.transports.File({ filename: "error.log" }),
-    ],
-  });
+  level: 'error',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.json()
+  ),
+  transports: [
+    transport
+  ]
+});
+
 
 
 
