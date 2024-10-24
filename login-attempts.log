@@ -401,3 +401,9 @@
 {"level":"error","message":"Error al manejar el intento fallido de inicio de sesión: El id del usuario es inválido o no está definido."}
 {"level":"info","message":"Usuario 31 inició sesión desde IP: ::1 y clienteId: fb297612-a29b-4814-a93b-44a05010ded0"}
 {"level":"info","message":"Usuario 31 inició sesión desde IP: ::1 y clienteId: 3943e6ab-eb81-404a-8385-e96990451980"}
+{"level":"info","message":"Usuario 31 inició sesión desde IP: ::1 y clienteId: 3943e6ab-eb81-404a-8385-e96990451980"}
+{"level":"info","message":"Usuario 31 inició sesión desde IP: ::1 y clienteId: 813e810b-ec51-4704-8bfe-82f3617d2c81"}
+{"level":"info","message":"Usuario 31 inició sesión desde IP: ::1 y clienteId: 9953040a-189c-4944-87a1-b81622387f5f"}
+{"level":"info","message":"Usuario 31 inició sesión desde IP: ::1 y clienteId: fcd93789-c93d-44cc-b71a-3df6bc59f891"}
+{"level":"info","message":"Usuario 31 inició sesión desde IP: ::1 y clienteId: fcd93789-c93d-44cc-b71a-3df6bc59f891"}
+{"level":"info","message":"Usuario 31 inició sesión desde IP: ::1 y clienteId: 7f0ebc58-ef59-47fc-bfee-0f9d7694619f"}

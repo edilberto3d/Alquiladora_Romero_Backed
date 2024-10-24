@@ -11,11 +11,14 @@ const rateLimit = require("express-rate-limit");
 const winston = require('winston');
 const crypto = require("crypto");
 const csrf = require('csurf'); 
+const { enableMFA, verifyMFA } = require('./mfa'); 
 
 const usuarioRouter = express.Router();
 usuarioRouter.use(express.json());
 usuarioRouter.use(cookieParser());
 const csrfProtection = csrf({ cookie: true });
+const otplib = require('otplib');
+const qrcode = require('qrcode');
 
 //Variables para el ip
 const MAX_FAILED_ATTEMPTS = 5; //Intentos
@@ -101,19 +104,25 @@ const verifyCaptcha = async (captchaToken) => {
 //Login
 usuarioRouter.post("/login", csrfProtection, async (req, res, next) => {
   try {
-    const { email, contrasena } = req.body;
+    // Extraer email, contraseña y token MFA (si se incluye)
+    const { email, contrasena, tokenMFA } = req.body;
+
+    // Validar que se reciban los campos de email y contraseña
+    if (!email || !contrasena) {
+      return res.status(400).json({ message: "Email y contraseña son obligatorios." });
+    }
 
     // Obtener IP
     const ip = getClientIp(req);
     // Obtener o crear clientId
     const clientId = getOrCreateClientId(req, res);
 
-    // Verificar si req.db existe y está definido
+    // Verificar si la conexión a la base de datos está disponible
     if (!req.db) {
       throw new Error('La conexión a la base de datos no está disponible.');
     }
 
-    // Buscar el usuario por correo
+    // Buscar al usuario por correo
     const query = "SELECT * FROM tblusuarios WHERE Correo = ?";
     const [usuarios] = await req.db.query(query, [email]);
 
@@ -124,13 +133,12 @@ usuarioRouter.post("/login", csrfProtection, async (req, res, next) => {
     }
 
     const usuario = usuarios[0];
-    console.log("Usuario ", usuario);
+    console.log("Usuario encontrado: ", usuario);
 
-    // Intentar obtener registros de bloqueos
+    // Verificar si el usuario está bloqueado
     const bloqueoQuery = 'SELECT * FROM tblipbloqueados WHERE idUsuarios = ?';
     const [bloqueos] = await req.db.query(bloqueoQuery, [usuario.idUsuarios]);
 
-    // Verificar si el usuario está bloqueado
     if (bloqueos.length > 0) {
       const bloqueo = bloqueos[0];
       if (bloqueo.lock_until && new Date() > new Date(bloqueo.lock_until)) {
@@ -152,6 +160,27 @@ usuarioRouter.post("/login", csrfProtection, async (req, res, next) => {
     if (!validPassword) {
       await handleFailedAttempt(ip, clientId, usuario.idUsuarios, req.db);
       return res.status(401).json({ message: "Correo o contraseña incorrectos." });
+    }
+
+    // Verificar si el usuario tiene MFA habilitado
+    if (usuario.mfa_secret ) { 
+      // Si MFA está habilitado pero no se recibió el tokenMFA, devolver que MFA es necesario
+      if (!tokenMFA) {
+        return res.status(200).json({
+          message: 'MFA requerido. Por favor ingresa el código de verificación MFA.',
+          mfaRequired: true,
+          userId: usuario.idUsuarios, // Enviar el userId al frontend para la verificación MFA
+        });
+      }
+
+      // Si se recibió un tokenMFA, verificarlo
+      const isValidMFA = otplib.authenticator.check(tokenMFA, usuario.mfa_secret);
+
+      if (!isValidMFA) {
+        return res.status(400).json({ message: 'Código MFA incorrecto.' });
+      }
+
+      console.log("MFA verificado correctamente");
     }
 
     // Eliminar intentos fallidos si la autenticación es exitosa
@@ -182,7 +211,7 @@ usuarioRouter.post("/login", csrfProtection, async (req, res, next) => {
       },
     });
 
-    console.log("login exitoso");
+    console.log("Login exitoso");
     console.log(`Usuario ${usuario.idUsuarios} inició sesión desde IP: ${ip} y clienteId: ${clientId}`);
     logger.info(`Usuario ${usuario.idUsuarios} inició sesión desde IP: ${ip} y clienteId: ${clientId}`);
   } catch (error) {
@@ -190,6 +219,46 @@ usuarioRouter.post("/login", csrfProtection, async (req, res, next) => {
     next(error);
   }
 });
+
+//qr
+usuarioRouter.post('/enable-mfa', csrfProtection, async (req, res) => {
+  try {
+    const { userId } = req.body;
+
+    // Buscar al usuario por su ID
+    const [usuarios] = await req.db.query("SELECT * FROM tblusuarios WHERE idUsuarios = ?", [userId]);
+    if (usuarios.length === 0) {
+      return res.status(404).json({ message: "Usuario no encontrado." });
+    }
+
+    const usuario = usuarios[0];
+
+    // Generar la clave secreta para MFA
+    const mfaSecret = otplib.authenticator.generateSecret();
+
+    // Generar el enlace otpauth para Google Authenticator
+    const otpauthURL = otplib.authenticator.keyuri(usuario.Correo, 'TuApp', mfaSecret);
+
+    // Generar código QR
+    const qrCode = await qrcode.toDataURL(otpauthURL);
+
+    // Guardar la clave MFA en la base de datos
+    await req.db.query("UPDATE tblusuarios SET mfa_secret = ? WHERE idUsuarios = ?", [mfaSecret, usuario.idUsuarios]);
+
+    // Enviar el código QR al cliente para que lo escanee
+    res.json({
+      message: 'MFA habilitado correctamente.',
+      qrCode,
+    });
+  } catch (error) {
+    console.error('Error al habilitar MFA:', error);
+    res.status(500).json({ message: 'Error al habilitar MFA.' });
+  }
+});
+
+
+
+
 
 //================================Manejo de intentos fallidos de login=======================================
 async function handleFailedAttempt(ip, clientId, idUsuarios, db) {

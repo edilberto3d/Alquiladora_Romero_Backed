@@ -1,63 +1,113 @@
-const otplib = require('otplib'); // Usaremos otplib para generar y verificar códigos TOTP
-const qrcode = require('qrcode'); // Librería para generar código QR
+const express = require('express');
+const otplib = require('otplib');
+const qrcode = require('qrcode');
+const csrf = require('csurf'); // CSRF protection
+const csrfProtection = csrf({ cookie: true }); // Configuración de CSRF para proteger con cookies
 
-// Función para habilitar MFA y generar un código QR
-async function enableMFA(req, res) {
-    const userId = req.body.userId;
+const mfaRoute = express.Router();
 
-    try {
-        // 1. Generar un secreto único para el usuario
-        const secret = otplib.authenticator.generateSecret();
+// Habilitar MFA con protección CSRF y cookies
+mfaRoute.post('/enable-mfa', csrfProtection, async (req, res) => {
+  try {
+    const { userId } = req.body;
 
-        // 2. Crear el URI OTP para Google Authenticator
-        const otpauth = otplib.authenticator.keyuri('Usuario', 'TuApp', secret);
-
-        // 3. Generar el código QR
-        const qrCodeUrl = await qrcode.toDataURL(otpauth);
-
-        // 4. Almacenar el secreto en la base de datos utilizando req.db
-        await req.db.query('UPDATE tblusuarios SET mfa_secret = ? WHERE idUsuarios = ?', [secret, userId]);
-
-        // 5. Devolver el código QR al frontend
-        res.json({
-            message: 'MFA habilitado correctamente. Escanea el código QR con Google Authenticator.',
-            qrCode: qrCodeUrl,
-        });
-    } catch (error) {
-        console.error('Error al habilitar MFA:', error);
-        res.status(500).json({ message: 'Error en el servidor.' });
+    // Buscar al usuario por su ID
+    const [usuarios] = await req.db.query("SELECT * FROM tblusuarios WHERE idUsuarios = ?", [userId]);
+    if (usuarios.length === 0) {
+      return res.status(404).json({ message: "Usuario no encontrado." });
     }
-}
 
-// Función para verificar el código TOTP
-async function verifyMFA(req, res) {
+    const usuario = usuarios[0];
+
+    // Generar la clave secreta para MFA
+    const mfaSecret = otplib.authenticator.generateSecret();
+
+    // Generar el enlace otpauth para Google Authenticator
+    const otpauthURL = otplib.authenticator.keyuri(usuario.Correo, 'TuCodigoSecreto', mfaSecret);
+
+    // Generar código QR
+    const qrCode = await qrcode.toDataURL(otpauthURL);
+
+    // Guardar la clave MFA en la base de datos
+    await req.db.query("UPDATE tblusuarios SET mfa_secret = ? WHERE idUsuarios = ?", [mfaSecret, usuario.idUsuarios]);
+
+    // Enviar el código QR al cliente para que lo escanee
+    res.cookie("mfaToken", "active", { httpOnly: true, secure: true, sameSite: 'Strict' }); // Añadir cookie de MFA
+    res.json({
+      message: 'MFA habilitado correctamente.',
+      qrCode,
+    });
+  } catch (error) {
+    console.error('Error al habilitar MFA:', error);
+    res.status(500).json({ message: 'Error al habilitar MFA.' });
+  }
+});
+
+// Deshabilitar MFA con CSRF y manejo de cookies
+mfaRoute.post('/disable-mfa', csrfProtection, async (req, res) => {
+  try {
+    const { userId } = req.body;
+
+    // Limpiar el campo mfa_secret en la base de datos
+    await req.db.query("UPDATE tblusuarios SET mfa_secret = NULL WHERE idUsuarios = ?", [userId]);
+
+    res.clearCookie("mfaToken"); // Eliminar la cookie de MFA
+    res.json({ message: 'MFA deshabilitado correctamente.' });
+  } catch (error) {
+    console.error('Error al deshabilitar MFA:', error);
+    res.status(500).json({ message: 'Error al deshabilitar MFA.' });
+  }
+});
+
+// Verificar MFA con CSRF y manejo de cookies
+mfaRoute.post('/verify-mfa', csrfProtection, async (req, res) => {
+  try {
     const { userId, token } = req.body;
 
-    try {
-        // 1. Obtener el secreto MFA desde la base de datos usando req.db
-        const [rows] = await req.db.query('SELECT mfa_secret FROM tblusuarios WHERE idUsuarios = ?', [userId]);
-
-        if (rows.length === 0) {
-            return res.status(400).json({ message: 'Usuario no encontrado.' });
-        }
-
-        const mfaSecret = rows[0].mfa_secret;
-
-        // 2. Verificar el token usando el secreto MFA
-        const isValid = otplib.authenticator.check(token, mfaSecret);
-
-        if (isValid) {
-            res.json({ message: 'Código MFA verificado correctamente.' });
-        } else {
-            res.status(400).json({ message: 'Código MFA incorrecto.' });
-        }
-    } catch (error) {
-        console.error('Error al verificar MFA:', error);
-        res.status(500).json({ message: 'Error en el servidor.' });
+    if (!userId || !token) {
+      return res.status(400).json({ message: 'Faltan datos requeridos: userId o token.' });
     }
-}
 
-module.exports = {
-    enableMFA,
-    verifyMFA
-};
+    // Buscar al usuario por su ID
+    const [usuarios] = await req.db.query("SELECT mfa_secret FROM tblusuarios WHERE idUsuarios = ?", [userId]);
+    if (usuarios.length === 0) {
+      return res.status(404).json({ message: "Usuario no encontrado." });
+    }
+
+    const { mfa_secret } = usuarios[0];
+
+    // Verificar el token MFA
+    const isValidMFA = otplib.authenticator.check(token, mfa_secret);
+
+    if (isValidMFA) {
+      return res.json({ message: 'Código MFA verificado correctamente.' });
+    } else {
+      return res.status(400).json({ message: 'Código MFA incorrecto.' });
+    }
+  } catch (error) {
+    console.error('Error al verificar MFA:', error);
+    res.status(500).json({ message: 'Error al verificar MFA.' });
+  }
+});
+
+// Consultar estado MFA con CSRF
+mfaRoute.get('/mfa-status/:userId', csrfProtection, async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Consultar si el usuario tiene MFA activado
+    const [usuarios] = await req.db.query("SELECT mfa_secret FROM tblusuarios WHERE idUsuarios = ?", [userId]);
+
+    if (usuarios.length === 0) {
+      return res.status(404).json({ message: "Usuario no encontrado." });
+    }
+
+    const mfaEnabled = usuarios[0].mfa_secret !== null;
+    res.json({ mfaEnabled });
+  } catch (error) {
+    console.error('Error al obtener el estado de MFA:', error);
+    res.status(500).json({ message: 'Error al obtener el estado de MFA.' });
+  }
+});
+
+module.exports = mfaRoute;

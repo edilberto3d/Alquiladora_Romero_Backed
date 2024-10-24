@@ -13,6 +13,7 @@ const cookieParser = require("cookie-parser");
 const usuarios=require('./consultas/usuarios');
 const email=require('./consultas/email')
 const imagen= require('./consultas/clsImagenes');
+const mfa= require('./consultas/mfa')
 
 
 
@@ -96,6 +97,7 @@ app.use(async (req, res, next) => {
 app.use('/api/usuarios', csrfProtection, usuarios);
 app.use('/api/email', csrfProtection, email);
 app.use('/api/imagenes', csrfProtection, imagen);
+app.use('/api/mfa', csrfProtection, mfa);
 
  app.post("/api/logError", (req, res) => {
     const { error, errorInfo } = req.body;
