@@ -6,10 +6,13 @@ const moment = require('moment-timezone');
 const axios = require('axios');
 const winston = require("winston");
 require("winston-daily-rotate-file");
+const csrf = require("csurf");
+const cookieParser = require("cookie-parser");
 
 //iMPORTAMOS LAS CONSULTAS
 const usuarios=require('./consultas/usuarios');
 const email=require('./consultas/email')
+const imagen= require('./consultas/clsImagenes');
 
 
 
@@ -58,8 +61,8 @@ app.use(cors({
       callback(new Error('No permitido por CORS'));
     }
   },
-  methods: ['GET', 'POST', 'PUT', 'DELETE'], 
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
   credentials: true, 
 }));
 
@@ -68,6 +71,14 @@ app.options('*', cors());
 
 
 app.use(express.json());
+app.use(cookieParser());
+// Middleware CSRF: Aquí se genera y valida el token CSRF
+const csrfProtection = csrf({ cookie: true });
+// Ruta para obtener el token CSRF
+app.get('/api/get-csrf-token', csrfProtection, (req, res) => {
+  res.json({ csrfToken: req.csrfToken() });
+});
+
 
 // Función para hacer la conexión a MySQL 
 app.use(async (req, res, next) => {
@@ -82,8 +93,9 @@ app.use(async (req, res, next) => {
 });
 
  // definir tus rutas
- app.use('/api/usuarios', usuarios);
- app.use('/api/email', email);
+app.use('/api/usuarios', csrfProtection, usuarios);
+app.use('/api/email', csrfProtection, email);
+app.use('/api/imagenes', csrfProtection, imagen);
 
  app.post("/api/logError", (req, res) => {
     const { error, errorInfo } = req.body;
