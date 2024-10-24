@@ -400,3 +400,4 @@
 {"level":"error","message":"Error al manejar el intento fallido de inicio de sesión: El id del usuario es inválido o no está definido."}
 {"level":"error","message":"Error al manejar el intento fallido de inicio de sesión: El id del usuario es inválido o no está definido."}
 {"level":"info","message":"Usuario 31 inició sesión desde IP: ::1 y clienteId: fb297612-a29b-4814-a93b-44a05010ded0"}
+{"level":"info","message":"Usuario 31 inició sesión desde IP: ::1 y clienteId: 3943e6ab-eb81-404a-8385-e96990451980"}
