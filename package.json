@@ -24,6 +24,7 @@
     "express-mysql-session": "^3.0.3",
     "express-rate-limit": "^7.4.1",
     "express-session": "^1.18.1",
+    "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
     "mailchecker": "^6.0.11",
     "moment-timezone": "^0.5.46",

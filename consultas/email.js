@@ -251,9 +251,110 @@ emailRouter.post('/send', csrfProtection, async (req, res) => {
     }
 });
 
+
+//Recupearcion de passs word  
+emailRouter.post('/send/recuperacion', csrfProtection, async (req, res) => {
+  const { correo, captchaToken, shortUUID, nombreU, nombreR } = req.body;
+  
+  // Verifica el CAPTCHA en el backend
+  const captchaVerified = await verifyCaptcha(captchaToken);
+  if (!captchaVerified) {
+    return res.status(400).json({ message: 'Captcha no válido, por favor intente de nuevo.' });
+  }
+
+  // Detectamos el error del usuario
+  console.log("Estos datos recibo del correo,", correo, shortUUID, nombreU, nombreR);
+  
+  // Definir el nombre del destinatario
+  const destinatario = nombreU || nombreR || 'Cliente';
+
+  // Contenido del email mejorado para recuperación de contraseña
+  const emailData = {
+    sender: { name: "Alquiladora Romero", email: "alquiladoraromero@isoftuthh.com" },
+    to: [{ email: correo, name: destinatario }],
+    subject: "Recuperación de Contraseña - Código de Verificación",
+    htmlContent: `
+      <html>
+      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f9f9f9; padding: 20px;">
+        <div style="max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px; background-color: #fff; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
+          
+          <!-- Encabezado con logo y título -->
+          <div style="text-align: center; padding-bottom: 20px;">
+            <h1 style="color: #007BFF; margin: 0;">Alquiladora Romero</h1>
+            <p style="color: #555;">Tu mejor opción en mobiliario</p>
+          </div>
+          
+          <!-- Sección de contenido principal -->
+          <div style="text-align: center; padding-bottom: 20px;">
+            <h2 style="color: #28A745; font-size: 24px; margin: 0;">Recuperación de Contraseña</h2>
+          </div>
+          <div style="text-align: center; padding: 10px 0;">
+            <p style="font-size: 18px; margin: 10px 0;">Hola, <strong>${destinatario}</strong></p>
+            <p style="font-size: 16px; margin: 10px 0;">Has solicitado restablecer tu contraseña. Por favor, utiliza el siguiente código para continuar con el proceso:</p>
+            <p style="font-size: 24px; font-weight: bold; color: #007BFF; margin: 20px 0;">${shortUUID}</p>
+            <p style="font-size: 16px; margin: 10px 0;">Este código es válido por 15 minutos.</p>
+            <p style="font-size: 16px; margin: 10px 0; color: #FF0000;">Si no solicitaste este cambio, ignora este mensaje.</p>
+          </div>
+          
+          <!-- Redes sociales -->
+          <div style="text-align: center; margin-top: 20px;">
+            <p style="font-size: 14px; color: #555;">Síguenos en nuestras redes sociales:</p>
+            <div style="display: inline-block; padding: 10px;">
+              <a href="https://www.facebook.com/alquiladoraromero" target="_blank" style="text-decoration: none;">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/5/51/Facebook_f_logo_%282019%29.svg" alt="Facebook" style="width: 30px; height: 30px; margin-right: 10px;" />
+              </a>
+              <a href="https://www.instagram.com/alquiladoraromero" target="_blank" style="text-decoration: none;">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/a/a5/Instagram_icon.png" alt="Instagram" style="width: 30px; height: 30px;" />
+              </a>
+            </div>
+          </div>
+
+          <!-- Pie de página -->
+          <div style="border-top: 1px solid #eee; padding-top: 20px; margin-top: 20px; text-align: center; font-size: 12px; color: #777;">
+            <p>Esta es una notificación automática, por favor no respondas a este correo.</p>
+            <p>Alquiladora Romero, Calle Ejemplo #123, Ciudad, País</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+    headers: {
+      'X-Mailer': 'Alquiladora Romero Mailer',
+      'List-Unsubscribe': '<mailto:alquiladoraromero@isoftuthh.com>',
+      'X-Accept-Language': 'es-MX',
+      'X-Priority': '1 (Highest)',
+    },
+  };
+
+  try {
+    const response = await axios.post("https://api.brevo.com/v3/smtp/email", emailData, {
+      headers: {
+        'accept': 'application/json',
+        'api-key': process.env.API_KEY,
+        'content-type': 'application/json',
+      },
+    });
+    res.status(200).json({ message: "Correo enviado con éxito" });
+  } catch (error) {
+    console.error('Error enviando el correo:', error);
+    if (error.response) {
+      console.error('Datos de error:', error.response.data);
+      res.status(500).json({ message: "Error al enviar el correo", error: error.response.data });
+    } else {
+      res.status(500).json({ message: "Error al enviar el correo", error: error.message });
+    }
+  }
+});
+
+
+
+
+
+
 //Recuperacion de contraseña
 emailRouter.post('/cambiarpass', csrfProtection, async (req, res) => {
   const { correo,  shortUUID, nombreU, idUsuario } = req.body;
+  console.log(correo,  shortUUID, nombreU, idUsuario)
 
  
   // Expiración del token en 15 minutos (900000 ms)

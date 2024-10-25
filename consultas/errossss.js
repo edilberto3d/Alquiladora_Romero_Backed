@@ -1114,3 +1114,59 @@ usuarioRouter.post("/change-password", csrfProtection, async (req, res) => {
 
 
 module.exports = usuarioRouter;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+mfaRoute.post('/verify-mfa', csrfProtection, async (req, res) => {
+  try {
+    const { userId, token } = req.body;
+    console.log("estee es userid, token", userId,token)
+
+    // Validación rápida de entrada
+    if (!userId || !token) {
+      return res.status(400).json({ message: 'Faltan datos requeridos: userId o token.' });
+    }
+
+    // Consulta de usuario
+    const [usuarios] = await req.db.query(
+      "SELECT mfa_secret, rol FROM tblusuarios WHERE idUsuarios = ?",
+      [userId]
+    );
+    
+    console.log("Usuarios encontrado", [usuarios]);
+    if (usuarios.length === 0) {
+      return res.status(404).json({ message: "Usuario no encontrado." });
+    }
+
+    const { mfa_secret, rol }  = usuarios[0];
+  console.log("Mfa_secret en BD:", mfa_secret);
+
+    // Verificación del token MFA
+    const isValidMFA = otplib.authenticator.check(token, mfa_secret);
+    console.log("MisValidMFA", isValidMFA);
+    
+    if (isValidMFA) {
+      
+    return res.json({
+      message: 'Código MFA verificado correctamente.',
+      user: { id: userId, rol: rol } // Incluimos el ID y rol del usuario
+    });
+    } else {
+      return res.status(400).json({ message: 'Código MFA incorrecto o vencido.' });
+    }
+  } catch (error) {
+    console.error('Error al verificar MFA:', error);
+    res.status(500).json({ message: 'Error al verificar MFA.' });
+  }
+});

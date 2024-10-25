@@ -1,7 +1,3 @@
-
-
-
-
 const express = require("express");
 const argon2 = require("argon2");
 const cookieParser = require("cookie-parser");
@@ -77,35 +73,18 @@ function getOrCreateClientId(req, res) {
 
 
 //=========================================VALIDATION TOKEN
-const verifyCaptcha = async (captchaToken) => {
-  const secretKey = process.env.RECAPTCHA_SECRET_KEY; 
-  
-  // Verifica el token con la API de Google
-  const response = await axios.post(
-    `https://www.google.com/recaptcha/api/siteverify`,
-    null,
-    {
-      params: {
-        secret: secretKey,      
-        response: captchaToken  
-      }
-    }
-  );
 
-  const { success } = response.data;
-  
-  if (!success) {
-    throw new Error("Falló la verificación del captcha");
-  }
-
-  return true;
+otplib.authenticator.options = {
+  window: 2, 
 };
+
 //===================================================LOGIN
 //Login
 usuarioRouter.post("/login", csrfProtection, async (req, res, next) => {
   try {
     // Extraer email, contraseña y token MFA (si se incluye)
     const { email, contrasena, tokenMFA } = req.body;
+    console.log("Este es los datos que recibe del login",email, contrasena, tokenMFA  )
 
     // Validar que se reciban los campos de email y contraseña
     if (!email || !contrasena) {
@@ -161,26 +140,26 @@ usuarioRouter.post("/login", csrfProtection, async (req, res, next) => {
       await handleFailedAttempt(ip, clientId, usuario.idUsuarios, req.db);
       return res.status(401).json({ message: "Correo o contraseña incorrectos." });
     }
-
-    // Verificar si el usuario tiene MFA habilitado
-    if (usuario.mfa_secret ) { 
-      // Si MFA está habilitado pero no se recibió el tokenMFA, devolver que MFA es necesario
+//==============================================================MFA ATIVADO=====================
+console.log(usuario.mfa_secret )
+    if (usuario.mfa_secret) {
+    
       if (!tokenMFA) {
         return res.status(200).json({
           message: 'MFA requerido. Por favor ingresa el código de verificación MFA.',
-          mfaRequired: true,
-          userId: usuario.idUsuarios, // Enviar el userId al frontend para la verificación MFA
+          mfaRequired: true,  
+          userId: usuario.idUsuarios, 
         });
       }
 
       // Si se recibió un tokenMFA, verificarlo
       const isValidMFA = otplib.authenticator.check(tokenMFA, usuario.mfa_secret);
+      console.log(isValidMFA )
 
-      if (!isValidMFA) {
+       
+     if (!isValidMFA) {
         return res.status(400).json({ message: 'Código MFA incorrecto.' });
       }
-
-      console.log("MFA verificado correctamente");
     }
 
     // Eliminar intentos fallidos si la autenticación es exitosa
