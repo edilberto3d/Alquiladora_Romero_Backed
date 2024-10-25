@@ -16,6 +16,9 @@ const email = require('./consultas/email');
 const imagen = require('./consultas/clsImagenes');
 const mfa = require('./consultas/mfa');
 const empresa= require('./consultas/datosEmpresa')
+const politicas= require('./consultas/politicas');
+const terminos= require('./consultas/terminos');
+
 
 // Winston: Rotación diaria de logs
 const transport = new winston.transports.DailyRotateFile({
@@ -102,6 +105,7 @@ app.use('/api/email', csrfProtection, email);
 app.use('/api/imagenes', csrfProtection, imagen);
 app.use('/api/mfa', csrfProtection, mfa);
 app.use('/api/empresa', csrfProtection, empresa);
+app.use('/api/politicas', csrfProtection,politicas);
 
 // Ruta para registrar errores de cliente
 app.post("/api/logError", (req, res) => {
