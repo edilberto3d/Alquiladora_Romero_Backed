@@ -9,6 +9,10 @@ require("winston-daily-rotate-file");
 const csrf = require("csurf");
 const cookieParser = require("cookie-parser");
 const helmet = require("helmet"); // Para agregar cabeceras de seguridad
+const path = require('path'); // Agrega esta línea
+const fs = require('fs');
+
+
 
 // Importación de consultas
 const usuarios = require('./consultas/usuarios');
@@ -106,6 +110,7 @@ app.use('/api/imagenes', csrfProtection, imagen);
 app.use('/api/mfa', csrfProtection, mfa);
 app.use('/api/empresa', csrfProtection, empresa);
 app.use('/api/politicas', csrfProtection,politicas);
+app.use('/api/terminos', csrfProtection,terminos);
 
 // Ruta para registrar errores de cliente
 app.post("/api/logError", (req, res) => {
@@ -113,6 +118,41 @@ app.post("/api/logError", (req, res) => {
   logger.error({ message: error, stack: errorInfo });
   res.status(201).send("Error registrado en el archivo de log.");
 });
+
+
+
+
+
+
+app.get('/api/logs', async (req, res) => {
+  try {
+    const logDirectory = path.join(__dirname, 'logs');
+    
+    // Leer todos los archivos de log en el directorio de logs, en orden descendente por fecha
+    const logFiles = fs.readdirSync(logDirectory).sort((a, b) => {
+      return fs.statSync(path.join(logDirectory, b)).mtime - fs.statSync(path.join(logDirectory, a)).mtime;
+    });
+
+    const logs = [];
+    const maxLogs = 10; // Número máximo de entradas para enviar (ajusta según tus necesidades)
+
+    // Leer los archivos de log más recientes hasta el límite definido
+    for (const file of logFiles) {
+      const logPath = path.join(logDirectory, file);
+      const content = fs.readFileSync(logPath, 'utf-8');
+      const lines = content.split('\n').filter(line => line).map(line => JSON.parse(line));
+      
+      logs.push(...lines); // Agrega todas las líneas al array logs
+      if (logs.length >= maxLogs) break; // Si llegamos al límite, detenemos la carga
+    }
+
+    res.json(logs.slice(0, maxLogs)); // Enviamos los logs recortados al límite
+  } catch (error) {
+    console.error('Error al leer logs:', error);
+    res.status(500).json({ message: 'No se pudieron obtener los logs.' });
+  }
+});
+
 
 // Middleware global para manejo de errores
 app.use((err, req, res, next) => {

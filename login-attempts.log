@@ -436,3 +436,8 @@
 {"level":"warn","message":"Intento fallido desde IP: ::1 y clientId: 9953040a-189c-4944-87a1-b81622387f5f para el usuario con ID 31"}
 {"level":"info","message":"Usuario 31 inició sesión desde IP: ::1 y clienteId: 9953040a-189c-4944-87a1-b81622387f5f"}
 {"level":"info","message":"Usuario 31 inició sesión desde IP: ::1 y clienteId: 9953040a-189c-4944-87a1-b81622387f5f"}
+{"level":"info","message":"Usuario 31 inició sesión desde IP: ::1 y clienteId: 9953040a-189c-4944-87a1-b81622387f5f"}
+{"level":"info","message":"Registro de bloqueo creado para el usuario con ID 31"}
+{"level":"warn","message":"Intento fallido desde IP: ::1 y clientId: 9953040a-189c-4944-87a1-b81622387f5f para el usuario con ID 31"}
+{"level":"info","message":"Usuario 31 inició sesión desde IP: ::1 y clienteId: 9953040a-189c-4944-87a1-b81622387f5f"}
+{"level":"info","message":"Usuario 31 inició sesión desde IP: ::1 y clienteId: 9953040a-189c-4944-87a1-b81622387f5f"}

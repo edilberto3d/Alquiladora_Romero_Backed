@@ -107,5 +107,4 @@ terminosRouter.delete('/:id', csrfProtection, async (req, res) => {
   }
 });
 
-
 module.exports = terminosRouter;
