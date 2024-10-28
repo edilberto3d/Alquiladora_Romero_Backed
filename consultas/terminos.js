@@ -8,14 +8,6 @@ terminosRouter.use(express.json());
 // Protección CSRF usando cookies
 const csrfProtection = csrf({ cookie: true });
 
-// Limitar las solicitudes para evitar abusos
-const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 100,
-  message: "Has alcanzado el límite de solicitudes, intenta más tarde.",
-});
-
-terminosRouter.use(apiLimiter); // Aplicamos el rate limiter
 
 // Obtener todos los términos
 terminosRouter.get('/', async (req, res) => {
@@ -28,6 +20,21 @@ terminosRouter.get('/', async (req, res) => {
   }
 });
 
+//====================================================================================================
+// Obtener la versión vigente para usuarios finales (sin autenticación)
+terminosRouter.get('/vigente', async (req, res) => {
+  try {
+    const [terminos] = await req.db.query("SELECT * FROM terminos WHERE estado = 'vigente' ORDER BY versio DESC LIMIT 1");
+    if (terminos.length === 0) {
+      return res.status(404).json({ error: 'No hay términos vigentes' });
+    }
+    res.json(terminos[0]);
+  } catch (error) {
+    console.error('Error al obtener término vigente:', error);
+    res.status(500).json({ error: 'No se pudo obtener el término vigente' });
+  }
+});
+//===================================================================
 // Obtener un término por su ID
 terminosRouter.get('/:id', async (req, res) => {
   const { id } = req.params;
@@ -45,9 +52,9 @@ terminosRouter.get('/:id', async (req, res) => {
     res.status(500).json({ error: 'No se pudo obtener el término' });
   }
 });
-
-// Crear un nuevo término (con CSRF y cookies)
-terminosRouter.post('/', csrfProtection, async (req, res) => {
+//===========================================================================================================
+// Crear un nuevo término (versión 1.0)
+terminosRouter.post('/', csrfProtection,  async (req, res) => {
   const { titulo, contenido, fechaVigencia, secciones } = req.body;
 
   if (!titulo || !contenido || !fechaVigencia) {
@@ -55,8 +62,26 @@ terminosRouter.post('/', csrfProtection, async (req, res) => {
   }
 
   try {
-    const query = "INSERT INTO terminos (titulo, contenido, fechaVigencia, secciones) VALUES (?, ?, ?, ?)";
-    await req.db.query(query, [titulo, contenido, fechaVigencia, JSON.stringify(secciones)]);
+     // Obtener el término actual
+     const [terminoActual] = await req.db.query("SELECT * FROM terminos WHERE estado = 'vigente' ORDER BY created_at DESC LIMIT 1");
+     
+     let nuevaVersion;
+
+     if (terminoActual.length === 0) {
+      nuevaVersion = '1.0';
+     }else{
+         // Calcular nueva versión
+    const versionAnterior = parseFloat(terminoActual[0].versio);
+    nuevaVersion = (versionAnterior + 1.0).toFixed(1); 
+     }
+     
+ 
+    // Marcar cualquier término vigente existente como 'no vigente'
+    await req.db.query("UPDATE terminos SET estado = 'no vigente' WHERE estado = 'vigente'");
+
+    const query = "INSERT INTO terminos (titulo, contenido, fechaVigencia, secciones, versio , estado, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())";
+    await req.db.query(query, [titulo, contenido, fechaVigencia, JSON.stringify(secciones), nuevaVersion, 'vigente']);
+
     res.status(201).json({ message: 'Término creado exitosamente' });
   } catch (error) {
     console.error('Error al crear término:', error);
@@ -64,8 +89,10 @@ terminosRouter.post('/', csrfProtection, async (req, res) => {
   }
 });
 
-// Actualizar un término existente (con CSRF y cookies)
-terminosRouter.put('/:id', csrfProtection, async (req, res) => {
+//===========================================================================================================
+
+// Crear una nueva versión de un término existente
+terminosRouter.post('/:id/nueva-version', csrfProtection,  async (req, res) => {
   const { id } = req.params;
   const { titulo, contenido, fechaVigencia, secciones } = req.body;
 
@@ -74,33 +101,58 @@ terminosRouter.put('/:id', csrfProtection, async (req, res) => {
   }
 
   try {
-    const query = "UPDATE terminos SET titulo = ?, contenido = ?, fechaVigencia = ?, secciones = ?, updated_at = NOW() WHERE id = ?";
-    const [result] = await req.db.query(query, [titulo, contenido, fechaVigencia, JSON.stringify(secciones), id]);
+    // Obtener el término actual
+    const [terminoActual] = await req.db.query("SELECT * FROM terminos WHERE id = ?", [id]);
 
-    if (result.affectedRows === 0) {
+    if (terminoActual.length === 0) {
       return res.status(404).json({ error: 'Término no encontrado' });
     }
 
-    res.json({ message: 'Término actualizado exitosamente' });
+    // Marcar el término actual como 'no vigente'
+    await req.db.query("UPDATE terminos SET estado = 'no vigente' WHERE id = ?", [id]);
+
+    // Calcular nueva versión
+    const versionAnterior = parseFloat(terminoActual[0].versio);
+    const nuevaVersion = (versionAnterior + 1.0).toFixed(1); 
+
+    // Insertar nueva versión
+    const query = "INSERT INTO terminos (titulo, contenido, fechaVigencia, secciones, versio, estado, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())";
+    await req.db.query(query, [titulo, contenido, fechaVigencia, JSON.stringify(secciones), nuevaVersion, 'vigente']);
+
+    res.status(201).json({ message: 'Nueva versión del término creada exitosamente' });
   } catch (error) {
-    console.error('Error al actualizar término:', error);
-    res.status(500).json({ error: 'No se pudo actualizar el término' });
+    console.error('Error al crear nueva versión:', error);
+    res.status(500).json({ error: 'No se pudo crear la nueva versión' });
   }
 });
 
-// Eliminar un término (con CSRF y cookies)
+
+
+// Marcar un término como eliminado (eliminación lógica)
 terminosRouter.delete('/:id', csrfProtection, async (req, res) => {
   const { id } = req.params;
 
   try {
-    const query = "DELETE FROM terminos WHERE id = ?";
-    const [result] = await req.db.query(query, [id]);
+    const [termino] = await req.db.query("SELECT * FROM terminos WHERE id = ?", [id]);
 
-    if (result.affectedRows === 0) {
+    if (termino.length === 0) {
       return res.status(404).json({ error: 'Término no encontrado' });
     }
+    await req.db.query("UPDATE terminos SET estado = 'eliminado' WHERE id = ?", [id]);
+    if (termino[0].estado === 'vigente') {
+      const [ultimoTermino] = await req.db.query(`
+        SELECT * FROM terminos 
+        WHERE estado = 'no vigente' 
+        AND fechaVigencia >= CURDATE()
+        ORDER BY fechaVigencia DESC, versio DESC 
+        LIMIT 1
+      `);
+      if (ultimoTermino.length > 0) {
+        await req.db.query("UPDATE terminos SET estado = 'vigente' WHERE id = ?", [ultimoTermino[0].id]);
+      }
+    }
 
-    res.json({ message: 'Término eliminado exitosamente' });
+    res.json({ message: 'Término marcado como eliminado exitosamente' });
   } catch (error) {
     console.error('Error al eliminar término:', error);
     res.status(500).json({ error: 'No se pudo eliminar el término' });

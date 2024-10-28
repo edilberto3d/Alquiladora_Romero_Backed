@@ -3,14 +3,13 @@ const csrf = require("csurf"); // Protección CSRF para evitar ataques
 const router = express.Router();
 const csrfProtection = csrf({ cookie: true });
 
-// Middleware para asegurarnos de que las peticiones se hacen con JSON y que usamos cookies
 router.use(express.json());
 
 //=====================================================================
 // Crear un endpoint para obtener los datos de la empresa
-router.get("/", csrfProtection, async (req, res) => {
+router.get("/", async (req, res) => {
   try {
-    const [empresa] = await req.db.query("SELECT * FROM empresa"); // Solo un registro
+    const [empresa] = await req.db.query("SELECT * FROM empresa"); 
     if (empresa.length === 0) {
       return res.status(404).json({ message: "Datos de la empresa no encontrados." });
     }
@@ -29,7 +28,6 @@ router.post("/actualizar", csrfProtection, async (req, res) => {
 
     const redesSocialesJSON = redes_sociales ? JSON.stringify(redes_sociales) : null;
 
-    // Verificar si los datos ya existen
     const [empresa] = await req.db.query("SELECT id FROM empresa WHERE id = 1");
 
     if (empresa.length === 0) {
@@ -57,7 +55,7 @@ router.post("/actualizar", csrfProtection, async (req, res) => {
 });
 
 //=====================================================================
-// Actualizar un campo específico de los datos de la empresa (por ejemplo, solo el logo)
+
 router.patch("/:campo", csrfProtection, async (req, res) => {
   const { campo } = req.params;
   const { valor } = req.body;
@@ -79,6 +77,7 @@ router.patch("/:campo", csrfProtection, async (req, res) => {
     res.status(500).json({ message: `Error al actualizar ${campo}.` });
   }
 });
+
 
 //=====================================================================
 module.exports = router;

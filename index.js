@@ -22,6 +22,7 @@ const mfa = require('./consultas/mfa');
 const empresa= require('./consultas/datosEmpresa')
 const politicas= require('./consultas/politicas');
 const terminos= require('./consultas/terminos');
+const deslin= require("./consultas/deslin");
 
 
 // Winston: Rotación diaria de logs
@@ -64,7 +65,7 @@ const pool = mysql.createPool({
 app.use(helmet()); // Cabeceras de seguridad
 
 // Configuración de CORS
-const allowedOrigins = ['http://localhost:3000'];
+const allowedOrigins = ['http://localhost:3000','https://alquiladoraromero.isoftuthh.com' ];
 
 app.use(cors({
   origin: function (origin, callback) {
@@ -74,7 +75,7 @@ app.use(cors({
       callback(new Error('No permitido por CORS'));
     }
   },
-  methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS', 'PUT'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
   credentials: true,
 }));
@@ -108,9 +109,10 @@ app.use('/api/usuarios', csrfProtection, usuarios);
 app.use('/api/email', csrfProtection, email);
 app.use('/api/imagenes', csrfProtection, imagen);
 app.use('/api/mfa', csrfProtection, mfa);
-app.use('/api/empresa', csrfProtection, empresa);
-app.use('/api/politicas', csrfProtection,politicas);
-app.use('/api/terminos', csrfProtection,terminos);
+app.use('/api/empresa', empresa);
+app.use('/api/politicas', politicas);
+app.use('/api/terminos',terminos);
+app.use('/api/deslin',deslin);
 
 // Ruta para registrar errores de cliente
 app.post("/api/logError", (req, res) => {
@@ -128,25 +130,25 @@ app.get('/api/logs', async (req, res) => {
   try {
     const logDirectory = path.join(__dirname, 'logs');
     
-    // Leer todos los archivos de log en el directorio de logs, en orden descendente por fecha
+    
     const logFiles = fs.readdirSync(logDirectory).sort((a, b) => {
       return fs.statSync(path.join(logDirectory, b)).mtime - fs.statSync(path.join(logDirectory, a)).mtime;
     });
 
     const logs = [];
-    const maxLogs = 10; // Número máximo de entradas para enviar (ajusta según tus necesidades)
+    const maxLogs = 10; 
 
-    // Leer los archivos de log más recientes hasta el límite definido
+   
     for (const file of logFiles) {
       const logPath = path.join(logDirectory, file);
       const content = fs.readFileSync(logPath, 'utf-8');
       const lines = content.split('\n').filter(line => line).map(line => JSON.parse(line));
       
-      logs.push(...lines); // Agrega todas las líneas al array logs
-      if (logs.length >= maxLogs) break; // Si llegamos al límite, detenemos la carga
+      logs.push(...lines);
+      if (logs.length >= maxLogs) break; 
     }
 
-    res.json(logs.slice(0, maxLogs)); // Enviamos los logs recortados al límite
+    res.json(logs.slice(0, maxLogs));
   } catch (error) {
     console.error('Error al leer logs:', error);
     res.status(500).json({ message: 'No se pudieron obtener los logs.' });

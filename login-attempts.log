@@ -441,3 +441,54 @@
 {"level":"warn","message":"Intento fallido desde IP: ::1 y clientId: 9953040a-189c-4944-87a1-b81622387f5f para el usuario con ID 31"}
 {"level":"info","message":"Usuario 31 inició sesión desde IP: ::1 y clienteId: 9953040a-189c-4944-87a1-b81622387f5f"}
 {"level":"info","message":"Usuario 31 inició sesión desde IP: ::1 y clienteId: 9953040a-189c-4944-87a1-b81622387f5f"}
+{"level":"info","message":"Usuario 31 inició sesión desde IP: ::1 y clienteId: 4c18e426-299e-44bc-b86d-c7340832aef4"}
+{"level":"info","message":"Usuario 32 inició sesión desde IP: ::1 y clienteId: 4c18e426-299e-44bc-b86d-c7340832aef4"}
+{"level":"info","message":"Registro de bloqueo creado para el usuario con ID 32"}
+{"level":"warn","message":"Intento fallido desde IP: ::1 y clientId: 4c18e426-299e-44bc-b86d-c7340832aef4 para el usuario con ID 32"}
+{"level":"info","message":"Usuario 32 ha fallado otro intento. Total intentos fallidos: 2"}
+{"level":"warn","message":"Intento fallido desde IP: ::1 y clientId: 4c18e426-299e-44bc-b86d-c7340832aef4 para el usuario con ID 32"}
+{"level":"info","message":"Usuario 32 ha fallado otro intento. Total intentos fallidos: 3"}
+{"level":"warn","message":"Intento fallido desde IP: ::1 y clientId: 4c18e426-299e-44bc-b86d-c7340832aef4 para el usuario con ID 32"}
+{"level":"info","message":"Usuario 32 ha fallado otro intento. Total intentos fallidos: 4"}
+{"level":"warn","message":"Intento fallido desde IP: ::1 y clientId: 4c18e426-299e-44bc-b86d-c7340832aef4 para el usuario con ID 32"}
+{"level":"info","message":"Usuario 32 ha alcanzado el número máximo de intentos. Bloqueado hasta Fri Oct 25 2024 17:35:11 GMT-0600 (hora estándar central)"}
+{"level":"warn","message":"Intento fallido desde IP: ::1 y clientId: 0b76ef40-e067-4a7e-821d-958721fea8db para el usuario con ID 32"}
+{"level":"info","message":"Registro de bloqueo creado para el usuario con ID 32"}
+{"level":"warn","message":"Intento fallido desde IP: ::1 y clientId: 0b76ef40-e067-4a7e-821d-958721fea8db para el usuario con ID 32"}
+{"level":"info","message":"Usuario 32 ha fallado otro intento. Total intentos fallidos: 2"}
+{"level":"warn","message":"Intento fallido desde IP: ::1 y clientId: 0b76ef40-e067-4a7e-821d-958721fea8db para el usuario con ID 32"}
+{"level":"info","message":"Usuario 31 inició sesión desde IP: ::1 y clienteId: 64efa735-d9aa-422e-b457-f8261dbcb1a4"}
+{"level":"info","message":"Usuario 31 inició sesión desde IP: ::1 y clienteId: 2b43a715-11db-414c-966f-7a7b14800594"}
+{"level":"info","message":"Usuario 31 inició sesión desde IP: ::1 y clienteId: 2b43a715-11db-414c-966f-7a7b14800594"}
+{"level":"info","message":"Usuario 31 inició sesión desde IP: ::1 y clienteId: 4de13d10-b131-4d84-bbda-791b81185148"}
+{"level":"info","message":"Usuario 31 inició sesión desde IP: ::1 y clienteId: 4de13d10-b131-4d84-bbda-791b81185148"}
+{"level":"info","message":"Usuario 31 inició sesión desde IP: ::1 y clienteId: c4040fc3-b02b-4123-83ff-5c5f38ba7cc2"}
+{"level":"info","message":"Usuario 31 inició sesión desde IP: ::1 y clienteId: c4040fc3-b02b-4123-83ff-5c5f38ba7cc2"}
+{"level":"info","message":"Registro de bloqueo creado para el usuario con ID 31"}
+{"level":"warn","message":"Intento fallido desde IP: ::1 y clientId: c4040fc3-b02b-4123-83ff-5c5f38ba7cc2 para el usuario con ID 31"}
+{"level":"info","message":"Usuario 31 ha fallado otro intento. Total intentos fallidos: 2"}
+{"level":"warn","message":"Intento fallido desde IP: ::1 y clientId: c4040fc3-b02b-4123-83ff-5c5f38ba7cc2 para el usuario con ID 31"}
+{"level":"info","message":"Usuario 31 ha fallado otro intento. Total intentos fallidos: 3"}
+{"level":"warn","message":"Intento fallido desde IP: ::1 y clientId: c4040fc3-b02b-4123-83ff-5c5f38ba7cc2 para el usuario con ID 31"}
+{"level":"info","message":"Usuario 31 ha fallado otro intento. Total intentos fallidos: 4"}
+{"level":"warn","message":"Intento fallido desde IP: ::1 y clientId: c4040fc3-b02b-4123-83ff-5c5f38ba7cc2 para el usuario con ID 31"}
+{"level":"info","message":"Usuario 31 ha alcanzado el número máximo de intentos. Bloqueado hasta Sun Oct 27 2024 17:18:11 GMT-0600 (hora estándar central)"}
+{"level":"warn","message":"Intento fallido desde IP: ::1 y clientId: c4040fc3-b02b-4123-83ff-5c5f38ba7cc2 para el usuario con ID 31"}
+{"level":"info","message":"Registro de bloqueo creado para el usuario con ID 31"}
+{"level":"warn","message":"Intento fallido desde IP: ::1 y clientId: c4040fc3-b02b-4123-83ff-5c5f38ba7cc2 para el usuario con ID 31"}
+{"level":"info","message":"Usuario 31 inició sesión desde IP: ::1 y clienteId: c4040fc3-b02b-4123-83ff-5c5f38ba7cc2"}
+{"level":"info","message":"Usuario 31 inició sesión desde IP: ::1 y clienteId: 97ee5fea-8e5d-4094-8a86-37d963640bab"}
+{"level":"info","message":"Usuario 31 inició sesión desde IP: ::1 y clienteId: 0ef8f69e-c511-409f-82db-d6b3df4ac0e0"}
+{"level":"info","message":"Registro de bloqueo creado para el usuario con ID 31"}
+{"level":"warn","message":"Intento fallido desde IP: ::1 y clientId: 0ef8f69e-c511-409f-82db-d6b3df4ac0e0 para el usuario con ID 31"}
+{"level":"info","message":"Usuario 31 ha fallado otro intento. Total intentos fallidos: 2"}
+{"level":"warn","message":"Intento fallido desde IP: ::1 y clientId: 0ef8f69e-c511-409f-82db-d6b3df4ac0e0 para el usuario con ID 31"}
+{"level":"info","message":"Usuario 31 ha fallado otro intento. Total intentos fallidos: 3"}
+{"level":"warn","message":"Intento fallido desde IP: ::1 y clientId: 0ef8f69e-c511-409f-82db-d6b3df4ac0e0 para el usuario con ID 31"}
+{"level":"info","message":"Usuario 31 ha fallado otro intento. Total intentos fallidos: 4"}
+{"level":"warn","message":"Intento fallido desde IP: ::1 y clientId: 0ef8f69e-c511-409f-82db-d6b3df4ac0e0 para el usuario con ID 31"}
+{"level":"info","message":"Usuario 31 ha alcanzado el número máximo de intentos. Bloqueado hasta Sun Oct 27 2024 18:42:51 GMT-0600 (hora estándar central)"}
+{"level":"warn","message":"Intento fallido desde IP: ::1 y clientId: 0ef8f69e-c511-409f-82db-d6b3df4ac0e0 para el usuario con ID 31"}
+{"level":"info","message":"Usuario 31 inició sesión desde IP: ::1 y clienteId: 0ef8f69e-c511-409f-82db-d6b3df4ac0e0"}
+{"level":"info","message":"Usuario 31 inició sesión desde IP: ::1 y clienteId: 0ef8f69e-c511-409f-82db-d6b3df4ac0e0"}
+{"level":"info","message":"Usuario 31 inició sesión desde IP: ::1 y clienteId: 5dc97e58-5c76-4782-82ca-2091ded5c4cc"}
