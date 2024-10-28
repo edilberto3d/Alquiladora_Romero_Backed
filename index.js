@@ -86,7 +86,15 @@ app.use(express.json());
 app.use(cookieParser());
 
 // Middleware CSRF: Genera y valida el token CSRF
-const csrfProtection = csrf({ cookie: true });
+const csrfProtection = csrf({
+  cookie: {
+    key: '_csrf',
+    path: '/',
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production', 
+    sameSite: 'None', 
+  },
+});
 
 app.get('/api/get-csrf-token', csrfProtection, (req, res) => {
   res.json({ csrfToken: req.csrfToken() });
