@@ -65,7 +65,7 @@ const pool = mysql.createPool({
 app.use(helmet()); // Cabeceras de seguridad
 
 // Configuración de CORS
-const allowedOrigins = ['http://localhost:3000','https://alquiladoraromero.isoftuthh.com' ];
+const allowedOrigins = ['http://localhost:3000','https://alquiladoraromero.isoftuthh.com' ,'https://alquiladora-romero-backed-1.onrender.com'];
 
 app.use(cors({
   origin: function (origin, callback) {
@@ -87,6 +87,7 @@ app.use(cookieParser());
 
 // Middleware CSRF: Genera y valida el token CSRF
 const csrfProtection = csrf({ cookie: true });
+
 app.get('/api/get-csrf-token', csrfProtection, (req, res) => {
   res.json({ csrfToken: req.csrfToken() });
 });
@@ -162,6 +163,7 @@ app.use((err, req, res, next) => {
   logger.error({ message: 'Error inesperado en el servidor', error: err.stack });
   res.status(500).send("Algo salió mal.");
 });
+
 
 // Iniciamos el servidor
 app.listen(port, () => {

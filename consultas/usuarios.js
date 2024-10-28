@@ -75,7 +75,7 @@ function getOrCreateClientId(req, res) {
       maxAge: 30 * 60 * 1000,
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "Strict",
+      sameSite: 'None',
     });
   } else {
     clientId = decryptClientId(clientId);
@@ -206,7 +206,7 @@ usuarioRouter.post("/login", csrfProtection, async (req, res, next) => {
     res.cookie("sesionToken", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "Strict",
+      sameSite: 'None',
       maxAge: TOKEN_EXPIRATION_TIME,
     });
 
@@ -351,7 +351,7 @@ const verifyToken = (req, res, next) => {
       res.cookie("sesionToken", newToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "Strict",
+        sameSite: 'None',
         maxAge: TOKEN_EXPIRATION_TIME,
       });
       console.log("Token renovado exitosamente.");
@@ -541,7 +541,7 @@ usuarioRouter.post("/Delete/login", csrfProtection, (req, res) => {
   res.clearCookie("sesionToken", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "Strict",
+    sameSite: 'None',
   });
   console.log("Sesión cerrada correctamente.");
 
