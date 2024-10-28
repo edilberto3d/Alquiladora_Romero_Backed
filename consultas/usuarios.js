@@ -6,13 +6,12 @@ const { v4: uuidv4 } = require("uuid");
 const rateLimit = require("express-rate-limit");
 const winston = require("winston");
 const crypto = require("crypto");
-const csrf = require("csurf");
 const { enableMFA, verifyMFA } = require("./mfa");
 
 const usuarioRouter = express.Router();
 usuarioRouter.use(express.json());
 usuarioRouter.use(cookieParser());
-const csrfProtection = csrf({ cookie: true });
+
 const otplib = require("otplib");
 const qrcode = require("qrcode");
 
@@ -91,7 +90,7 @@ otplib.authenticator.options = {
 
 //===================================================LOGIN
 //Login
-usuarioRouter.post("/login", csrfProtection, async (req, res, next) => {
+usuarioRouter.post("/login",  async (req, res, next) => {
   try {
     // Extraer email, contraseña y token MFA (si se incluye)
     const { email, contrasena, tokenMFA } = req.body;
@@ -228,7 +227,7 @@ usuarioRouter.post("/login", csrfProtection, async (req, res, next) => {
 });
 
 //qr
-usuarioRouter.post("/enable-mfa", csrfProtection, async (req, res) => {
+usuarioRouter.post("/enable-mfa",  async (req, res) => {
   try {
     const { userId } = req.body;
 
@@ -420,7 +419,7 @@ usuarioRouter.get("/perfil", verifyToken, async (req, res) => {
 
 //============================================================================
 //Actualizamos el foto de perfil
-usuarioRouter.patch("/perfil/:id/foto", csrfProtection, async (req, res) => {
+usuarioRouter.patch("/perfil/:id/foto",  async (req, res) => {
   const userId = req.params.id;
   const { foto_perfil } = req.body; // Revisa que foto_perfil llegue bien
 
@@ -453,7 +452,7 @@ usuarioRouter.patch("/perfil/:id/foto", csrfProtection, async (req, res) => {
 
 //===============================================================================================
 //Actulizar el dato de usaurio en especifico
-usuarioRouter.patch("/perfil/:id/:field", csrfProtection, async (req, res) => {
+usuarioRouter.patch("/perfil/:id/:field",  async (req, res) => {
   const { id, field } = req.params;
   const { value } = req.body;
 
@@ -487,7 +486,7 @@ usuarioRouter.patch("/perfil/:id/:field", csrfProtection, async (req, res) => {
 // Endpoint para validar el token de recuperación de contraseña
 usuarioRouter.post(
   "/validarToken/contrasena",
-  csrfProtection,
+  
   async (req, res, next) => {
     try {
       const { idUsuario, token } = req.body;
@@ -537,7 +536,7 @@ usuarioRouter.post(
 
 //Creamos los Cookies==============================================
 //Eliminar Cookies
-usuarioRouter.post("/Delete/login", csrfProtection, (req, res) => {
+usuarioRouter.post("/Delete/login",  (req, res) => {
   res.clearCookie("sesionToken", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -562,7 +561,7 @@ usuarioRouter.get("/", async (req, res, next) => {
 //=================================================================================
 
 //Insert
-usuarioRouter.post("/", csrfProtection, async (req, res, next) => {
+usuarioRouter.post("/",  async (req, res, next) => {
   try {
     const {
       nombre,
@@ -599,7 +598,7 @@ usuarioRouter.post("/", csrfProtection, async (req, res, next) => {
 //=========================================================================================
 //validar contraseña actual
 // Endpoint para verificar la contraseña actual
-usuarioRouter.post("/verify-password", csrfProtection, async (req, res) => {
+usuarioRouter.post("/verify-password",  async (req, res) => {
   const { idUsuario, currentPassword } = req.body;
   console.log("Esye es lo que recibe,", idUsuario, currentPassword);
 
@@ -641,7 +640,7 @@ usuarioRouter.post("/verify-password", csrfProtection, async (req, res) => {
 });
 
 //Cambiar contraseña y  guradarlo en el historial
-usuarioRouter.post("/change-password", csrfProtection, async (req, res) => {
+usuarioRouter.post("/change-password",  async (req, res) => {
   const { idUsuario, newPassword } = req.body;
 
   if (!idUsuario || !newPassword) {
