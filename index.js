@@ -64,6 +64,7 @@ const pool = mysql.createPool({
 // Middleware de seguridad
 app.use(helmet()); // Cabeceras de seguridad
 
+
 // Configuración de CORS
 const allowedOrigins = ['http://localhost:3000','https://alquiladoraromero.isoftuthh.com' ,'https://alquiladora-romero-backed-1.onrender.com'];
 

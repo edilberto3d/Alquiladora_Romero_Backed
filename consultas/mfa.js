@@ -1,8 +1,8 @@
 const express = require('express');
 const otplib = require('otplib');
 const qrcode = require('qrcode');
-const csrf = require('csurf');
-const csrfProtection = csrf({ cookie: true });
+
+
 
 const mfaRoute = express.Router();
 
@@ -11,7 +11,7 @@ otplib.authenticator.options = {
   };
 
 // Habilitar MFA
-mfaRoute.post('/verify-mfa', csrfProtection, async (req, res) => {
+mfaRoute.post('/verify-mfa', async (req, res) => {
     try {
       const { userId, token } = req.body;
       console.log("estee es userid, token", userId,token)
@@ -48,7 +48,7 @@ mfaRoute.post('/verify-mfa', csrfProtection, async (req, res) => {
   
   
 
-  mfaRoute.post('/enable-mfa', csrfProtection, async (req, res) => {
+  mfaRoute.post('/enable-mfa', async (req, res) => {
     try {
       const { userId } = req.body;
   
@@ -84,7 +84,7 @@ mfaRoute.post('/verify-mfa', csrfProtection, async (req, res) => {
 
 
 // Deshabilitar MFA
-mfaRoute.post('/disable-mfa', csrfProtection, async (req, res) => {
+mfaRoute.post('/disable-mfa', async (req, res) => {
   try {
     const { userId } = req.body;
 
@@ -102,7 +102,7 @@ mfaRoute.post('/disable-mfa', csrfProtection, async (req, res) => {
 });
 
 // Verificar MFA
-mfaRoute.post('/verify-mfa', csrfProtection, async (req, res) => {
+mfaRoute.post('/verify-mfa', async (req, res) => {
   try {
     const { userId, token } = req.body;
 
@@ -132,7 +132,7 @@ mfaRoute.post('/verify-mfa', csrfProtection, async (req, res) => {
 });
 
 // Obtener estado de MFA
-mfaRoute.get('/mfa-status/:userId', csrfProtection, async (req, res) => {
+mfaRoute.get('/mfa-status/:userId', async (req, res) => {
     try {
       const { userId } = req.params;
   

@@ -3,11 +3,10 @@ const express = require('express');
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const streamifier = require('streamifier');
-const csrf = require('csurf');
 
 // Configura multer para manejar archivos en memoria
 const upload = multer({ storage: multer.memoryStorage() });
-const csrfProtection = csrf({ cookie: true });
+
 
 // Configurar las credenciales de Cloudinary usando variables de entorno
 cloudinary.config({
@@ -20,7 +19,7 @@ const imagenesRouter = express.Router();
 
 //==============================PERFIL===============================================//
 // Ruta para la subida de imágenes a Cloudinary
-imagenesRouter.post('/upload', csrfProtection, upload.single('imagen'), (req, res) => {
+imagenesRouter.post('/upload',  upload.single('imagen'), (req, res) => {
   if (!req.file) {
       return res.status(400).send("No se ha subido ningún archivo.");
   }
@@ -47,7 +46,7 @@ imagenesRouter.post('/upload', csrfProtection, upload.single('imagen'), (req, re
 
 //==============================IMAGENES===============================================//
 // Ruta para la subida de imágenes de restaurantes a Cloudinary y guardar la URL en MongoDB
-imagenesRouter.post('/uploadRestaurante', csrfProtection, upload.single('imagen'), async (req, res) => {
+imagenesRouter.post('/uploadRestaurante',  upload.single('imagen'), async (req, res) => {
     if (!req.file) {
         return res.status(400).send("No se ha subido ningún archivo.");
     }
@@ -82,7 +81,7 @@ imagenesRouter.post('/uploadRestaurante', csrfProtection, upload.single('imagen'
 
 //Sirva para crear un nuevo fomdo es parte admin
 // Registrar un nuevo fondo
-imagenesRouter.post('/web', csrfProtection, upload.single('imagen'), async (req, res, next) => {
+imagenesRouter.post('/web',  upload.single('imagen'), async (req, res, next) => {
     const { tema, fondoColor, fechaInicio, fechaFin } = req.body;
     const imagen = req.file ? req.file.buffer : null;
     const collection = req.db.collection("fondosDePagina");
@@ -130,7 +129,7 @@ imagenesRouter.post('/web', csrfProtection, upload.single('imagen'), async (req,
     }
 });
 //Actualiar fondo
-imagenesRouter.patch('/web/:id',csrfProtection,  upload.single('imagen'), async (req, res, next) => {
+imagenesRouter.patch('/web/:id',  upload.single('imagen'), async (req, res, next) => {
     const { id } = req.params;
     const { tema, fondoColor, fechaInicio, fechaFin } = req.body;
     const imagen = req.file ? req.file.buffer : null;

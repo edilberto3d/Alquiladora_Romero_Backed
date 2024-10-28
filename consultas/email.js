@@ -1,11 +1,10 @@
 const express = require('express');
 const axios = require('axios'); 
 const dns = require('dns');
-const csrf = require('csurf');
+
 const emailRouter = express.Router();
 emailRouter.use(express.json());
 
-const csrfProtection = csrf({ cookie: true });
 
 // Expresión regular de validation
 const validateEmailFormat = (email) => {
@@ -26,7 +25,7 @@ const checkDomainMX = (domain) => {
 };
 
 // ==================================== Ruta de Validación del CAPTCHA ====================================
-emailRouter.post('/validate-captcha',csrfProtection,  async (req, res) => {
+emailRouter.post('/validate-captcha',  async (req, res) => {
   const { captchaToken } = req.body;
   
   try {
@@ -62,7 +61,7 @@ const verifyCaptcha = async (captchaToken) => {
   
 
 // Ruta de validacion correo ===============================================================
-emailRouter.post('/validate-email',csrfProtection,  async (req, res) => {
+emailRouter.post('/validate-email',  async (req, res) => {
   const { email } = req.body;
   const domain = email.split('@')[1];
 
