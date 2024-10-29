@@ -8,9 +8,10 @@ const winston = require("winston");
 require("winston-daily-rotate-file");
 const csrf = require("csurf");
 const cookieParser = require("cookie-parser");
-const helmet = require("helmet"); // Para agregar cabeceras de seguridad
-const path = require('path'); // Agrega esta línea
+const helmet = require("helmet"); 
+const path = require('path'); 
 const fs = require('fs');
+
 
 
 
@@ -116,7 +117,7 @@ app.use(async (req, res, next) => {
 
 // Rutas protegidas por CSRF
 app.use('/api/usuarios', csrfProtection, usuarios);
-app.use('/api/email', csrfProtection, email);
+app.use('/api/email',  csrfProtection, email);
 app.use('/api/imagenes', csrfProtection, imagen);
 app.use('/api/mfa', csrfProtection, mfa);
 app.use('/api/empresa', empresa);

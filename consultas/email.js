@@ -2,8 +2,13 @@ const express = require('express');
 const axios = require('axios'); 
 const dns = require('dns');
 
+
+
 const emailRouter = express.Router();
 emailRouter.use(express.json());
+
+
+
 
 
 // Expresión regular de validation
@@ -84,7 +89,7 @@ emailRouter.post('/validate-email',  async (req, res) => {
 
 ///==========================================================================================
    //Notificacion de cambio de contraseña 
-   emailRouter.post('/send-password-change-notification', csrfProtection, async (req, res) => {
+   emailRouter.post('/send-password-change-notification',  async (req, res) => {
     const { correo, nombreU } = req.body;
     
     // detectamos el error del usuario
@@ -164,7 +169,7 @@ emailRouter.post('/validate-email',  async (req, res) => {
 
 
 //===========================Enviamos el token al correo ==============================================
-emailRouter.post('/send', csrfProtection, async (req, res) => {
+emailRouter.post('/send',  async (req, res) => {
     const { correo,captchaToken, shortUUID, nombreU, nombreR } = req.body;
     
     // Verifica el CAPTCHA en el backend
@@ -252,7 +257,7 @@ emailRouter.post('/send', csrfProtection, async (req, res) => {
 
 
 //Recupearcion de passs word  
-emailRouter.post('/send/recuperacion', csrfProtection, async (req, res) => {
+emailRouter.post('/send/recuperacion',  async (req, res) => {
   const { correo, captchaToken, shortUUID, nombreU, nombreR } = req.body;
   
   // Verifica el CAPTCHA en el backend
@@ -351,7 +356,7 @@ emailRouter.post('/send/recuperacion', csrfProtection, async (req, res) => {
 
 
 //Recuperacion de contraseña
-emailRouter.post('/cambiarpass', csrfProtection, async (req, res) => {
+emailRouter.post('/cambiarpass',  async (req, res) => {
   const { correo,  shortUUID, nombreU, idUsuario } = req.body;
   console.log(correo,  shortUUID, nombreU, idUsuario)
 
