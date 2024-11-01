@@ -2,7 +2,6 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const cron = require("node-cron");
-const moment = require('moment-timezone');
 const axios = require('axios');
 const winston = require("winston");
 require("winston-daily-rotate-file");
@@ -36,13 +35,14 @@ const transport = new winston.transports.DailyRotateFile({
 });
 
 const logger = winston.createLogger({
-  level: 'error',
+  levels: winston.config.npm.levels,
   format: winston.format.combine(
-    winston.format.timestamp(),
+    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
     winston.format.json()
   ),
   transports: [
-    transport
+    transport,
+    new winston.transports.Console({ level: 'error' }),
   ]
 });
 
@@ -63,7 +63,7 @@ const pool = mysql.createPool({
 });
 
 // Middleware de seguridad
-app.use(helmet()); // Cabeceras de seguridad
+app.use(helmet()); 
 
 
 // Configuración de CORS
@@ -169,9 +169,20 @@ app.get('/api/logs', async (req, res) => {
 
 // Middleware global para manejo de errores
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  logger.error({ message: 'Error inesperado en el servidor', error: err.stack });
-  res.status(500).send("Algo salió mal.");
+  const errorDetails = {
+    message: err.message,
+    stack: err.stack,
+    method: req.method,
+    url: req.originalUrl,
+    ip: req.ip,
+    timestamp: new Date().toISOString(),
+  };
+  console.error("Error capturado:", errorDetails);
+  logger.error(errorDetails);
+  res.status(500).json({ 
+    success: false, 
+    message: 'Ocurrió un error en el servidor. Nuestro equipo está trabajando para solucionarlo.' 
+  });
 });
 
 

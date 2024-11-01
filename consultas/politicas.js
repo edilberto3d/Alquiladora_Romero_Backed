@@ -45,7 +45,14 @@ politicasRouter.get("/", async (req, res) => {
 // Obtener una política para usuarios finales (sin autenticación)
 politicasRouter.get("/vigente", async (req, res) => {
   try {
-    const [terminos] = await req.db.query("SELECT * FROM politicas WHERE estado = 'vigente' ORDER BY versio DESC LIMIT 1");
+    const [terminos] = await req.db.query(`
+      SELECT * 
+      FROM politicas 
+      WHERE estado = 'vigente' 
+      AND fechaVigencia <= NOW() 
+      ORDER BY versio DESC 
+      LIMIT 1
+    `);
     if (terminos.length === 0) {
       return res.status(404).json({ error: 'No hay Poloticas vigentes' });
     }

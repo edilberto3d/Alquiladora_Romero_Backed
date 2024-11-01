@@ -16,19 +16,13 @@ const otplib = require("otplib");
 const qrcode = require("qrcode");
 
 //Variables para el ip
-const MAX_FAILED_ATTEMPTS = 5; //Intentos
+const MAX_FAILED_ATTEMPTS = 5; 
 const LOCK_TIME = 10 * 60 * 1000; //
-const TOKEN_EXPIRATION_TIME = 30 * 60 * 1000; //30 mnts
+const TOKEN_EXPIRATION_TIME = 30 * 60 * 1000; 
 
-//lLAVE SECRETO
+
 const SECRET_KEY = process.env.SECRET_KEY.padEnd(32, " ");
 
-//rEGISTRO DE ERRORRES
-const logger = winston.createLogger({
-  level: "info",
-  format: winston.format.json(),
-  transports: [new winston.transports.File({ filename: "login-attempts.log" })],
-});
 //Encriptamos el clientId
 function encryptClientId(clientId) {
   const IV_LENGTH = 16;
@@ -110,7 +104,7 @@ usuarioRouter.post("/login",  async (req, res, next) => {
 
     // Obtener IP
     const ip = getClientIp(req);
-    // Obtener o crear clientId
+    // Obtener o crear clientId cookies
     const clientId = getOrCreateClientId(req, res);
 
     // Verificar si la conexión a la base de datos está disponible
