@@ -203,6 +203,14 @@ usuarioRouter.post("/login",  async (req, res, next) => {
       maxAge: TOKEN_EXPIRATION_TIME,
     });
 
+    // Insertar la sesión en tblsesiones
+    const sessionQuery = `
+      INSERT INTO tblsesiones (idUsuario, tokenSesion, direccionIP, clienteId)
+      VALUES (?, ?, ?, ?)
+    `;
+    await req.db.query(sessionQuery, [usuario.idUsuarios, token, ip, clientId]);
+
+
     // Responder con éxito
     res.json({
       message: "Login exitoso",
@@ -322,16 +330,28 @@ async function handleFailedAttempt(ip, clientId, idUsuarios, db) {
 //======================================================================
 
 //Middleware para validar token
-const verifyToken = (req, res, next) => {
+const verifyToken = async (req, res, next) => {
   const token = req.cookies.sesionToken;
 
   if (!token) {
     return res.status(403).json({ message: "No tienes token de acceso." });
   }
 
+
   try {
     const decoded = jwt.verify(token, SECRET_KEY);
     const now = Math.floor(Date.now() / 1000);
+
+    // Verificar si la sesión existe y está activa
+  const sessionQuery = `
+  SELECT * FROM tblsesiones WHERE idUsuario = ? AND tokenSesion = ? AND horaFin IS NULL
+`;
+const [sessions] = await req.db.query(sessionQuery, [decoded.id, token]);
+
+if (sessions.length === 0) {
+  // Sesión no encontrada o finalizada
+  return res.status(401).json({ message: "Sesión inválida o expirada. Por favor, inicia sesión nuevamente." });
+}
 
     // Si el token expira en menos de 2 minutos, renovamos el token
     const timeRemaining = decoded.exp - now;
@@ -347,6 +367,18 @@ const verifyToken = (req, res, next) => {
         sameSite: 'None',
         maxAge: TOKEN_EXPIRATION_TIME,
       });
+      const updateSessionQuery = `
+      UPDATE tblsesiones
+      SET tokenSesion = ?
+      WHERE idUsuario = ? AND tokenSesion = ? AND horaFin IS NULL
+    `;
+    await req.db.query(updateSessionQuery, [newToken, decoded.id, token]);
+    token = newToken;
+
+
+
+
+
       console.log("Token renovado exitosamente.");
     } else {
       console.log(`Tiempo restante para el token: ${timeRemaining} segundos.`);
@@ -530,15 +562,35 @@ usuarioRouter.post(
 
 //Creamos los Cookies==============================================
 //Eliminar Cookies
-usuarioRouter.post("/Delete/login",  (req, res) => {
-  res.clearCookie("sesionToken", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: 'None',
-  });
-  console.log("Sesión cerrada correctamente.");
+usuarioRouter.post("/Delete/login",async  (req, res) => {
+  const token = req.cookies.sesionToken;
+  if (!token) {
+    return res.status(400).json({ message: "No hay sesión activa." });
+  }
 
-  res.json({ message: "Sesión cerrada correctamente." });
+try {
+    const decoded = jwt.verify(token, SECRET_KEY);
+    const userId = decoded.id;
+
+    // Actualizar la horaFin en tblsesiones
+    const query = `
+      UPDATE tblsesiones
+      SET horaFin = NOW()
+      WHERE idUsuario = ? AND tokenSesion = ? AND horaFin IS NULL
+    `;
+    await req.db.query(query, [userId, token]);
+
+    res.clearCookie("sesionToken", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: 'None',
+    });
+
+    res.json({ message: "Sesión cerrada correctamente." });
+  } catch (error) {
+    console.error("Error al cerrar la sesión:", error);
+    res.status(500).json({ message: "Error al cerrar la sesión." });
+  }
 });
 
 //=========================================================================================

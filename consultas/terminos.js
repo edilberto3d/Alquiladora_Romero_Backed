@@ -24,7 +24,7 @@ terminosRouter.get('/', async (req, res) => {
 // Obtener la versión vigente para usuarios finales (sin autenticación)
 terminosRouter.get('/vigente', async (req, res) => {
   try {
-    const [terminos] = await req.db.query("SELECT * FROM terminos WHERE estado = 'vigente' ORDER BY versio DESC LIMIT 1");
+    const [terminos] = await req.db.query("SELECT * FROM terminos WHERE estado = 'vigente' AND CURDATE()<= fechaVigencia ORDER BY versio DESC LIMIT 1");
     if (terminos.length === 0) {
       return res.status(404).json({ error: 'No hay términos vigentes' });
     }
