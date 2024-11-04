@@ -784,20 +784,43 @@ usuarioRouter.get("/lista", async (req, res, next) => {
   try {
     const [usuarios] = await req.db.query(`
  SELECT 
-  u.idUsuarios,
-  u.Nombre,
-  u.ApellidoP,
-  u.ApellidoM,
-  u.Rol,
-  (SELECT COUNT(*) FROM tblipbloqueados WHERE idUsuarios = u.idUsuarios) AS veces_bloqueado,
-  (SELECT COUNT(*) FROM tblhistorialpass WHERE idUsuarios = u.idUsuarios) AS cambios_contrasena
-FROM 
-  tblusuarios u
+      u.idUsuarios,
+      u.Nombre,
+      u.ApellidoP,
+      u.ApellidoM,
+      u.Rol,
+      (SELECT COUNT(*) FROM tblipbloqueados WHERE idUsuarios = u.idUsuarios) AS veces_bloqueado,
+      (SELECT COUNT(*) FROM tblhistorialpass WHERE idUsuarios = u.idUsuarios) AS cambios_contrasena,
+      (SELECT COUNT(*) FROM tblsesiones WHERE idUsuario = u.idUsuarios) AS veces_sesion
+    FROM 
+      tblusuarios u
     `);
     res.json(usuarios);
   } catch (error) {
     console.error("Error al obtener la lista de usuarios:", error);
     res.status(500).json({ message: "Error al obtener la lista de usuarios." });
+  }
+});
+
+//Obtenre mas detalles de sesion del usuario especidifco
+usuarioRouter.get("/:idUsuario/sesiones", async (req, res, next) => {
+  const { idUsuario } = req.params;
+  try {
+    const [sesiones] = await req.db.query(`
+      SELECT 
+        idSesion,
+        horaInicio,
+        horaFin,
+        direccionIP
+      FROM tblsesiones
+      WHERE idUsuario = ?
+      ORDER BY horaInicio DESC
+    `, [idUsuario]);
+
+    res.json(sesiones);
+  } catch (error) {
+    console.error("Error al obtener las sesiones del usuario:", error);
+    res.status(500).json({ message: "Error al obtener las sesiones del usuario." });
   }
 });
 
