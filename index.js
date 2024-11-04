@@ -145,23 +145,19 @@ app.post("/api/logError", (req, res) => {
 app.get('/api/logs', async (req, res) => {
   try {
     const logDirectory = path.join(__dirname, 'logs');
-    
-    
     const logFiles = fs.readdirSync(logDirectory).sort((a, b) => {
       return fs.statSync(path.join(logDirectory, b)).mtime - fs.statSync(path.join(logDirectory, a)).mtime;
     });
 
     const logs = [];
-    const maxLogs = 10; 
+    const maxLogs = 50; 
 
-   
     for (const file of logFiles) {
       const logPath = path.join(logDirectory, file);
       const content = fs.readFileSync(logPath, 'utf-8');
       const lines = content.split('\n').filter(line => line).map(line => JSON.parse(line));
-      
       logs.push(...lines);
-      if (logs.length >= maxLogs) break; 
+      if (logs.length >= maxLogs) break;
     }
 
     res.json(logs.slice(0, maxLogs));
@@ -174,10 +170,10 @@ app.get('/api/logs', async (req, res) => {
 // Middleware de manejo de errores de CSRF
 app.use((err, req, res, next) => {
   if (err.code === 'EBADCSRFTOKEN') {
-    // Token CSRF inválido
+  
     res.status(403).json({ message: 'Token CSRF inválido o faltante.' });
   } else {
-    next(err); // Pasar al siguiente middleware de errores
+    next(err); 
   }
 });
 
@@ -195,7 +191,8 @@ app.use((err, req, res, next) => {
   logger.error(errorDetails);
   res.status(500).json({ 
     success: false, 
-    message: 'Ocurrió un error en el servidor. Nuestro equipo está trabajando para solucionarlo.' 
+    message: 'Ocurrió un error en el servidor. Nuestro equipo está trabajando para solucionarlo.',
+    error: errorDetails, 
   });
 });
 
