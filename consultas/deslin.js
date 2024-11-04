@@ -1,5 +1,6 @@
 const express = require('express');
 const csrf = require('csurf');
+const moment = require('moment-timezone');
 
 const deslindeLegalRouter = express.Router();
 deslindeLegalRouter.use(express.json());
@@ -8,7 +9,7 @@ deslindeLegalRouter.use(express.json());
 const csrfProtection = csrf({ cookie: true });
 
 // Obtener todos los documentos (historial completo)
-deslindeLegalRouter.get('/',  async (req, res) => {
+deslindeLegalRouter.get('/', async (req, res) => {
   try {
     const [documentos] = await req.db.query(
       "SELECT * FROM deslinde_legal ORDER BY created_at DESC"
@@ -23,8 +24,10 @@ deslindeLegalRouter.get('/',  async (req, res) => {
 // Obtener la versión vigente para usuarios finales (sin autenticación)
 deslindeLegalRouter.get('/vigente', async (req, res) => {
   try {
+    const fechaActual = moment().tz('America/Mexico_City').format('YYYY-MM-DD');
     const [documentos] = await req.db.query(
-      "SELECT * FROM deslinde_legal WHERE estado = 'vigente' ORDER BY version DESC LIMIT 1"
+      "SELECT * FROM deslinde_legal WHERE estado = 'vigente' AND ? <= fecha_vigencia ORDER BY version DESC LIMIT 1",
+      [fechaActual]
     );
     if (documentos.length === 0) {
       return res.status(404).json({ error: 'No hay documentos vigentes' });
@@ -37,7 +40,7 @@ deslindeLegalRouter.get('/vigente', async (req, res) => {
 });
 
 // Obtener un documento por su ID
-deslindeLegalRouter.get('/:id',  async (req, res) => {
+deslindeLegalRouter.get('/:id', async (req, res) => {
   const { id } = req.params;
 
   try {
@@ -58,7 +61,7 @@ deslindeLegalRouter.get('/:id',  async (req, res) => {
 });
 
 // Crear un nuevo documento (versión 1.0)
-deslindeLegalRouter.post('/',  csrfProtection, async (req, res) => {
+deslindeLegalRouter.post('/', csrfProtection, async (req, res) => {
   const { titulo, contenido, fechaVigencia, secciones } = req.body;
 
   if (!titulo || !contenido || !fechaVigencia) {
@@ -68,21 +71,30 @@ deslindeLegalRouter.post('/',  csrfProtection, async (req, res) => {
   }
 
   try {
-
-    // Obtener la última versión
-    const [ultimaVersion] = await req.db.query(
-      "SELECT MAX(version) as maxVersion FROM deslinde_legal"
+    // Obtener el documento actual
+    const [documentoActual] = await req.db.query(
+      "SELECT * FROM deslinde_legal WHERE estado = 'vigente' ORDER BY created_at DESC LIMIT 1"
     );
-    const nuevaVersion = ultimaVersion[0].maxVersion
-      ? (parseFloat(ultimaVersion[0].maxVersion) + 1.0).toFixed(1)
-      : '1.0';
 
+    let nuevaVersion;
+
+    if (documentoActual.length === 0) {
+      nuevaVersion = '1.0';
+    } else {
+      // Calcular nueva versión
+      const versionAnterior = parseFloat(documentoActual[0].version);
+      nuevaVersion = (versionAnterior + 1.0).toFixed(1);
+    }
+
+    // Marcar cualquier documento vigente existente como 'no vigente'
     await req.db.query(
       "UPDATE deslinde_legal SET estado = 'no vigente' WHERE estado = 'vigente'"
     );
 
+    const fechaCreacion = moment().tz('America/Mexico_City').format('YYYY-MM-DD HH:mm:ss');
+
     const query =
-      "INSERT INTO deslinde_legal (titulo, contenido, fecha_vigencia, secciones, version, estado, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())";
+      "INSERT INTO deslinde_legal (titulo, contenido, fecha_vigencia, secciones, version, estado, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)";
     await req.db.query(query, [
       titulo,
       contenido,
@@ -90,6 +102,7 @@ deslindeLegalRouter.post('/',  csrfProtection, async (req, res) => {
       JSON.stringify(secciones),
       nuevaVersion,
       'vigente',
+      fechaCreacion,
     ]);
 
     res.status(201).json({ message: 'Documento creado exitosamente' });
@@ -100,7 +113,7 @@ deslindeLegalRouter.post('/',  csrfProtection, async (req, res) => {
 });
 
 // Crear una nueva versión de un documento existente
-deslindeLegalRouter.post('/:id/nueva-version',  csrfProtection, async (req, res) => {
+deslindeLegalRouter.post('/:id/nueva-version', csrfProtection, async (req, res) => {
   const { id } = req.params;
   const { titulo, contenido, fechaVigencia, secciones } = req.body;
 
@@ -111,7 +124,7 @@ deslindeLegalRouter.post('/:id/nueva-version',  csrfProtection, async (req, res)
   }
 
   try {
- 
+    // Obtener el documento actual
     const [documentoActual] = await req.db.query(
       "SELECT * FROM deslinde_legal WHERE id = ?",
       [id]
@@ -121,7 +134,7 @@ deslindeLegalRouter.post('/:id/nueva-version',  csrfProtection, async (req, res)
       return res.status(404).json({ error: 'Documento no encontrado' });
     }
 
-   
+    // Marcar el documento actual como 'no vigente'
     await req.db.query(
       "UPDATE deslinde_legal SET estado = 'no vigente' WHERE id = ?",
       [id]
@@ -131,9 +144,11 @@ deslindeLegalRouter.post('/:id/nueva-version',  csrfProtection, async (req, res)
     const versionAnterior = parseFloat(documentoActual[0].version);
     const nuevaVersion = (versionAnterior + 1.0).toFixed(1);
 
+    const fechaCreacion = moment().tz('America/Mexico_City').format('YYYY-MM-DD HH:mm:ss');
+
     // Insertar nueva versión
     const query =
-      "INSERT INTO deslinde_legal (titulo, contenido, fecha_vigencia, secciones, version, estado, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())";
+      "INSERT INTO deslinde_legal (titulo, contenido, fecha_vigencia, secciones, version, estado, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)";
     await req.db.query(query, [
       titulo,
       contenido,
@@ -141,6 +156,7 @@ deslindeLegalRouter.post('/:id/nueva-version',  csrfProtection, async (req, res)
       JSON.stringify(secciones),
       nuevaVersion,
       'vigente',
+      fechaCreacion,
     ]);
 
     res.status(201).json({ message: 'Nueva versión del documento creada exitosamente' });
@@ -150,7 +166,8 @@ deslindeLegalRouter.post('/:id/nueva-version',  csrfProtection, async (req, res)
   }
 });
 
-deslindeLegalRouter.delete('/:id',  csrfProtection, async (req, res) => {
+// Marcar un documento como eliminado (eliminación lógica)
+deslindeLegalRouter.delete('/:id', csrfProtection, async (req, res) => {
   const { id } = req.params;
 
   try {
@@ -168,18 +185,20 @@ deslindeLegalRouter.delete('/:id',  csrfProtection, async (req, res) => {
       [id]
     );
 
-   
     if (documento[0].estado === 'vigente') {
-      const [ultimoDocumento] = await req.db.query(`
-        SELECT * FROM deslinde_legal
-        WHERE estado = 'no vigente' AND fecha_vigencia <= CURDATE()
-        ORDER BY fecha_vigencia DESC, version DESC
-        LIMIT 1
-      `);
+      const fechaActual = moment().tz('America/Mexico_City').format('YYYY-MM-DD');
+      const [ultimoDocumento] = await req.db.query(
+        `SELECT * FROM deslinde_legal
+         WHERE estado = 'no vigente' AND fecha_vigencia >= ?
+         ORDER BY fecha_vigencia DESC, version DESC
+         LIMIT 1`,
+        [fechaActual]
+      );
       if (ultimoDocumento.length > 0) {
-        await req.db.query("UPDATE deslinde_legal SET estado = 'vigente' WHERE id = ?", [
-          ultimoDocumento[0].id,
-        ]);
+        await req.db.query(
+          "UPDATE deslinde_legal SET estado = 'vigente' WHERE id = ?",
+          [ultimoDocumento[0].id]
+        );
       }
     }
 
