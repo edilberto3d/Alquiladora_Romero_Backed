@@ -808,7 +808,7 @@ usuarioRouter.get("/:idUsuario/sesiones", async (req, res, next) => {
   try {
     const [sesiones] = await req.db.query(`
       SELECT 
-        idSesion,
+        id,
         horaInicio,
         horaFin,
         direccionIP
