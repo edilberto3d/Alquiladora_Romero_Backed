@@ -824,6 +824,49 @@ usuarioRouter.get("/:idUsuario/sesiones", async (req, res, next) => {
   }
 });
 
+
+// Endpoint para registrar la expiración de sesión
+usuarioRouter.post("/session-expired", async (req, res) => {
+  const { userId } = req.body;
+  const ip = getClientIp(req);
+
+  if (!userId) {
+    return res.status(400).json({ message: "ID de usuario no proporcionado." });
+  }
+
+  try {
+   
+    const [sessions] = await req.db.query(
+      `SELECT * FROM tblsesiones WHERE idUsuario = ? AND horaFin IS NULL ORDER BY horaInicio DESC LIMIT 1`,
+      [userId]
+    );
+
+    if (sessions.length === 0) {
+      return res.status(404).json({ message: "No se encontró una sesión activa para este usuario." });
+    }
+
+    const session = sessions[0];
+
+    
+    if (session.direccionIP !== ip) {
+      return res.status(403).json({ message: "No autorizado para cerrar esta sesión." });
+    }
+
+    const query = `
+      UPDATE tblsesiones
+      SET horaFin = NOW()
+      WHERE id = ?
+    `;
+    await req.db.query(query, [session.id]);
+
+    res.json({ message: "Sesión expirada registrada correctamente." });
+  } catch (error) {
+    console.error("Error al registrar la expiración de sesión:", error);
+    res.status(500).json({ message: "Error al registrar la expiración de sesión." });
+  }
+});
+
+
 //==================================================================================
 
 module.exports = usuarioRouter;
