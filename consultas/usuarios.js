@@ -15,12 +15,23 @@ usuarioRouter.use(cookieParser());
 const otplib = require("otplib");
 const qrcode = require("qrcode");
 
+// Configurar winston logger
+const logger = winston.createLogger({
+  level: 'info',
+  format: winston.format.simple(),
+  transports: [
+    new winston.transports.Console(),
+  ],
+});
+
 //Variables para el ip
 const MAX_FAILED_ATTEMPTS = 5; 
 const LOCK_TIME = 10 * 60 * 1000; //
 const TOKEN_EXPIRATION_TIME = 30 * 60 * 1000; 
 
-
+if (!process.env.SECRET_KEY) {
+  throw new Error("La variable de entorno SECRET_KEY no está definida.");
+}
 const SECRET_KEY = process.env.SECRET_KEY.padEnd(32, " ");
 
 //Encriptamos el clientId
@@ -204,12 +215,17 @@ usuarioRouter.post("/login",  async (req, res, next) => {
     });
 
     // Insertar la sesión en tblsesiones
-    const sessionQuery = `
-      INSERT INTO tblsesiones (idUsuario, tokenSesion, direccionIP, clienteId)
-      VALUES (?, ?, ?, ?)
-    `;
-    await req.db.query(sessionQuery, [usuario.idUsuarios, token, ip, clientId]);
-
+    try {
+      const sessionQuery = `
+        INSERT INTO tblsesiones (idUsuario, tokenSesion, horaInicio, direccionIP, clienteId)
+        VALUES (?, ?, NOW(), ?, ?)
+      `;
+      await req.db.query(sessionQuery, [usuario.idUsuarios, token, ip, clientId]);
+      console.log("Sesión insertada en tblsesiones");
+    } catch (insertError) {
+      console.error("Error al insertar la sesión en tblsesiones:", insertError);
+      return res.status(500).json({ message: "Error al iniciar sesión." });
+    }
 
     // Responder con éxito
     res.json({

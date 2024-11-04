@@ -67,6 +67,9 @@ const pool = mysql.createPool({
 
 // Middleware de seguridad
 app.use(helmet()); 
+app.use(express.json());
+app.use(cookieParser());
+
 
 
 // Configuración de CORS
@@ -87,9 +90,6 @@ app.use(cors({
 
 app.options('*', cors());
 
-app.use(express.json());
-app.use(cookieParser());
-
 // Middleware CSRF: Genera y valida el token CSRF
 const csrfProtection = csrf({
   cookie: {
@@ -99,11 +99,13 @@ const csrfProtection = csrf({
     secure: process.env.NODE_ENV === 'production', 
     sameSite: 'None', 
   },
+  ignoreMethods: ['GET', 'HEAD', 'OPTIONS'],
 });
 
 app.get('/api/get-csrf-token', csrfProtection, (req, res) => {
   res.json({ csrfToken: req.csrfToken() });
 });
+
 
 // Middleware para usar el pool de conexiones MySQL
 app.use(async (req, res, next) => {
@@ -169,6 +171,15 @@ app.get('/api/logs', async (req, res) => {
   }
 });
 
+// Middleware de manejo de errores de CSRF
+app.use((err, req, res, next) => {
+  if (err.code === 'EBADCSRFTOKEN') {
+    // Token CSRF inválido
+    res.status(403).json({ message: 'Token CSRF inválido o faltante.' });
+  } else {
+    next(err); // Pasar al siguiente middleware de errores
+  }
+});
 
 // Middleware global para manejo de errores
 app.use((err, req, res, next) => {
