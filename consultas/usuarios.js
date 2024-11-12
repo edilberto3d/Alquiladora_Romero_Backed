@@ -170,6 +170,7 @@ usuarioRouter.post("/login", async (req, res, next) => {
     }
     //==============================================================MFA ATIVADO=====================
     console.log(usuario.mfa_secret);
+
     if (usuario.mfa_secret) {
       if (!tokenMFA) {
         return res.status(200).json({
@@ -193,9 +194,9 @@ usuarioRouter.post("/login", async (req, res, next) => {
     }
 
     // Eliminar intentos fallidos si la autenticación es exitosa
-    await req.db.query("DELETE FROM tblipbloqueados WHERE idUsuarios = ?", [
-      usuario.idUsuarios,
-    ]);
+    // await req.db.query("DELETE FROM tblipbloqueados WHERE idUsuarios = ?", [
+    //   usuario.idUsuarios,
+    // ]);
 
     // Generar token JWT
     const token = jwt.sign(
@@ -269,7 +270,7 @@ usuarioRouter.post("/enable-mfa", async (req, res) => {
     // Generar el enlace otpauth para Google Authenticator
     const otpauthURL = otplib.authenticator.keyuri(
       usuario.Correo,
-      "TuApp",
+      "TU TOKEN ALQUILADORA ROMERO: ",
       mfaSecret
     );
 
