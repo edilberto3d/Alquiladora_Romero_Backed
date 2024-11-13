@@ -24,13 +24,27 @@ const logger = winston.createLogger({
 
 //Variables para el ip
 const MAX_FAILED_ATTEMPTS = 5;
-const LOCK_TIME = 10 * 60 * 1000; //
+const LOCK_TIME = 10 * 60 * 1000;
 const TOKEN_EXPIRATION_TIME = 30 * 60 * 1000;
 
 if (!process.env.SECRET_KEY) {
   throw new Error("La variable de entorno SECRET_KEY no está definida.");
 }
 const SECRET_KEY = process.env.SECRET_KEY.padEnd(32, " ");
+
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 100, // Máximo 100 solicitudes por IP
+  message: "Demasiadas solicitudes. Inténtalo de nuevo más tarde.",
+});
+usuarioRouter.use(globalLimiter);
+// Limitador específico para login
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 5, // Máximo 5 intentos de login en 15 minutos
+  message: "Demasiados intentos de inicio de sesión. Inténtalo más tarde.",
+});
+
 
 //Encriptamos el clientId
 function encryptClientId(clientId) {
@@ -93,15 +107,16 @@ otplib.authenticator.options = {
 
 //===================================================LOGIN
 //Login
-usuarioRouter.post("/login", async (req, res, next) => {
+usuarioRouter.post("/login",loginLimiter, async (req, res, next) => {
   try {
     // Extraer email, contraseña y token MFA (si se incluye)
-    const { email, contrasena, tokenMFA } = req.body;
+    const { email, contrasena, tokenMFA,clientTimestamp } = req.body;
     console.log(
       "Este es los datos que recibe del login",
       email,
       contrasena,
-      tokenMFA
+      tokenMFA,
+      clientTimestamp
     );
 
     // Validar que se reciban los campos de email y contraseña
@@ -217,11 +232,12 @@ usuarioRouter.post("/login", async (req, res, next) => {
     try {
       const sessionQuery = `
         INSERT INTO tblsesiones (idUsuario, tokenSesion, horaInicio, direccionIP, clienteId)
-        VALUES (?, ?, NOW(), ?, ?)
+         VALUES (?, ?, ?, ?, ?)
       `;
       await req.db.query(sessionQuery, [
         usuario.idUsuarios,
         token,
+        clientTimestamp,
         ip,
         clientId,
       ]);
