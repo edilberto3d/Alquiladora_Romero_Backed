@@ -630,6 +630,35 @@ usuarioRouter.post("/Delete/login", async (req, res) => {
 });
 
 //=========================================================================================
+// Endpoint para cerrar todas las sesiones de un usuario excepto la actual y almacenar la hora del dispositivo
+usuarioRouter.post("/cerrar-todas-sesiones", async (req, res) => {
+  const userId = req.user.id;
+  const currentToken = req.cookies.sesionToken; 
+  const { deviceTime } = req.body; 
+
+  if (!deviceTime) {
+    return res.status(400).json({ message: "Hora del dispositivo no proporcionada." });
+  }
+
+  try {
+    // Actualizar todas las sesiones activas excepto la actual, estableciendo horaFin con la hora del dispositivo
+    const query = `
+      UPDATE tblsesiones
+      SET horaFin = ?
+      WHERE idUsuario = ? AND horaFin IS NULL AND tokenSesion != ?
+    `;
+    const [result] = await req.db.query(query, [deviceTime, userId, currentToken]);
+
+    res.json({
+      message: "Todas las sesiones excepto la actual han sido cerradas.",
+      closedSessions: result.affectedRows,
+    });
+  } catch (error) {
+    console.error("Error al cerrar todas las sesiones:", error);
+    res.status(500).json({ message: "Error al cerrar todas las sesiones." });
+  }
+});
+//=========================================================================================
 // Obtenemos Todos Los Usuarios
 usuarioRouter.get("/", async (req, res, next) => {
   try {
