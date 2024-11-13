@@ -858,7 +858,8 @@ usuarioRouter.post("/sesiones", async (req, res) => {
         direccionIP,
         horaInicio,
         horaFin,
-        tokenSesion
+        tokenSesion,
+        tipoDispositivo
       FROM tblsesiones
       WHERE idUsuario = ? AND horaFin IS NULL
     `,
