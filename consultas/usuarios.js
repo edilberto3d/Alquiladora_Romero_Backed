@@ -110,7 +110,7 @@ otplib.authenticator.options = {
 usuarioRouter.post("/login",loginLimiter, async (req, res, next) => {
   try {
     // Extraer email, contraseña y token MFA (si se incluye)
-    const { email, contrasena, tokenMFA,clientTimestamp } = req.body;
+    const { email, contrasena, tokenMFA, clientTimestamp, deviceType } = req.body;
     console.log(
       "Este es los datos que recibe del login",
       email,
@@ -231,15 +231,16 @@ usuarioRouter.post("/login",loginLimiter, async (req, res, next) => {
     // Insertar la sesión en tblsesiones
     try {
       const sessionQuery = `
-        INSERT INTO tblsesiones (idUsuario, tokenSesion, horaInicio, direccionIP, clienteId)
-         VALUES (?, ?, ?, ?, ?)
+        INSERT INTO tblsesiones (idUsuario, tokenSesion, horaInicio, direccionIP, clienteId, tipoDispositivo)
+        VALUES (?, ?, ?, ?, ?, ?)
       `;
       await req.db.query(sessionQuery, [
         usuario.idUsuarios,
         token,
-        clientTimestamp,
+        clientTimestamp,  
         ip,
         clientId,
+        deviceType   
       ]);
       console.log("Sesión insertada en tblsesiones");
     } catch (insertError) {
