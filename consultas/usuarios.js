@@ -142,6 +142,7 @@ usuarioRouter.post("/login",loginLimiter, async (req, res, next) => {
 
     // Si no se encuentra el usuario
     if (usuarios.length === 0) {
+      await registrarAuditoria("Desconocido", email, "Intento de inicio de sesión fallido", deviceType, ip, "Usuario no encontrado");
       console.log("Correo o contraseña incorrectos");
       return res
         .status(401)
@@ -167,6 +168,7 @@ usuarioRouter.post("/login",loginLimiter, async (req, res, next) => {
           (new Date(bloqueo.lock_until) - new Date()) / 1000
         );
         console.log("Tiempo restante del desbloqueo", tiempoRestante);
+        await registrarAuditoria(usuario.Nombre, email, `Dispositivo bloqueado. Inténtalo de nuevo en ${tiempoRestante} segundos.`, deviceType, ip, "Usuario bloqueado");
         return res.status(403).json({
           message: `Dispositivo bloqueado. Inténtalo de nuevo en ${tiempoRestante} segundos.`,
           tiempoRestante,
@@ -179,6 +181,7 @@ usuarioRouter.post("/login",loginLimiter, async (req, res, next) => {
 
     if (!validPassword) {
       await handleFailedAttempt(ip, clientId, usuario.idUsuarios, req.db);
+      await registrarAuditoria(usuario.Nombre, email, `Credenciales incorrectos`, deviceType, ip, "Error de incio de sesion");
       return res
         .status(401)
         .json({ message: "Correo o contraseña incorrectos." });
@@ -188,6 +191,8 @@ usuarioRouter.post("/login",loginLimiter, async (req, res, next) => {
 
     if (usuario.mfa_secret) {
       if (!tokenMFA) {
+        await registrarAuditoria(usuario.Nombre, email, `MFA requerido. Por favor ingresa el código de verificación MFA.`, deviceType, ip, "Error de incio de sesion");
+  
         return res.status(200).json({
           message:
             "MFA requerido. Por favor ingresa el código de verificación MFA.",
@@ -204,6 +209,8 @@ usuarioRouter.post("/login",loginLimiter, async (req, res, next) => {
       console.log(isValidMFA);
 
       if (!isValidMFA) {
+        await registrarAuditoria(usuario.Nombre, email, `Código MFA incorrecto.`, deviceType, ip, "Error de incio de sesion");
+  
         return res.status(400).json({ message: "Código MFA incorrecto." });
       }
     }
@@ -257,7 +264,7 @@ usuarioRouter.post("/login",loginLimiter, async (req, res, next) => {
         rol: usuario.Rol,
       },
     });
-
+    await registrarAuditoria(usuario.Nombre, email, "Inicio de sesión exitoso", deviceType, ip, "Usuario autenticado correctamente");
     console.log("Login exitoso");
   } catch (error) {
     console.error("Error en el login:", error);
@@ -980,6 +987,50 @@ usuarioRouter.post("/session-expired", async (req, res) => {
       .json({ message: "Error al registrar la expiración de sesión." });
   }
 });
+
+//=================================AUDITORIA=================================================
+usuarioRouter.post("/auditoria", async (req, res) => {
+  const { usuario, correo, accion, dispositivo, ip, fecha_hora, detalles } = req.body;
+
+  try {
+    const query = `
+      INSERT INTO auditoria (usuario, correo, accion, dispositivo, ip, fecha_hora, detalles)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `;
+    await req.db.query(query, [usuario, correo, accion, dispositivo, ip, fecha_hora, detalles]);
+    res.status(200).json({ message: "Registro de auditoría almacenado correctamente" });
+  } catch (error) {
+    console.error("Error al guardar el registro de auditoría:", error);
+    res.status(500).json({ message: "Error al guardar el registro de auditoría" });
+  }
+});
+
+
+usuarioRouter.get("/auditoria/lista", async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        id, 
+        usuario, 
+        correo, 
+        accion, 
+        dispositivo, 
+        ip, 
+        fecha_hora, 
+        detalles 
+      FROM auditoria
+      ORDER BY fecha_hora DESC
+    `;
+
+    const [auditorias] = await req.db.query(query);
+
+    res.status(200).json(auditorias);
+  } catch (error) {
+    console.error("Error al obtener los registros de auditoría:", error);
+    res.status(500).json({ message: "Error al obtener los registros de auditoría" });
+  }
+});
+
 
 //==================================================================================
 
