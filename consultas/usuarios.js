@@ -838,6 +838,42 @@ usuarioRouter.post("/change-password", async (req, res) => {
   }
 });
 
+//======================sesiones===================================================================
+usuarioRouter.get("/sesiones", async (req, res) => {
+  const userId = req.user.id;
+
+  try {
+    const [sessions] = await req.db.query(
+      `
+      SELECT 
+        id,
+        direccionIP,
+        horaInicio,
+        horaFin,
+        tokenSesion
+      FROM tblsesiones
+      WHERE idUsuario = ? AND horaFin IS NULL
+    `,
+      [userId]
+    );
+
+    // Identificar la sesión actual (token coincide con el del usuario)
+    const currentToken = req.cookies.sesionToken;
+    const sessionsWithCurrentFlag = sessions.map(session => ({
+      ...session,
+      isCurrent: session.tokenSesion === currentToken,
+    }));
+
+    res.json(sessionsWithCurrentFlag);
+  } catch (error) {
+    console.error("Error al obtener las sesiones del usuario:", error);
+    res.status(500).json({ message: "Error al obtener las sesiones del usuario." });
+  }
+});
+
+//=========================================================================================
+
+
 // Obtener todos los usuarios con información adicional
 usuarioRouter.get("/lista", async (req, res, next) => {
   try {
