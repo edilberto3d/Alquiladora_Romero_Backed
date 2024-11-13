@@ -839,8 +839,12 @@ usuarioRouter.post("/change-password", async (req, res) => {
 });
 
 //======================sesiones===================================================================
-usuarioRouter.get("/sesiones", async (req, res) => {
-  const userId = req.user.id;
+usuarioRouter.post("/sesiones", async (req, res) => {
+  const { userId } = req.body;
+
+  if (!userId) {
+    return res.status(400).json({ message: "El userId es necesario." });
+  }
 
   try {
     const [sessions] = await req.db.query(
