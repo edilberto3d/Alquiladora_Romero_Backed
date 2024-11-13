@@ -916,7 +916,8 @@ usuarioRouter.get("/:idUsuario/sesiones", async (req, res, next) => {
         id,
         horaInicio,
         horaFin,
-        direccionIP
+        direccionIP,
+        tipoDispositivo
       FROM tblsesiones
       WHERE idUsuario = ?
       ORDER BY horaInicio DESC
