@@ -163,7 +163,7 @@ usuarioRouter.post("/login", async (req, res, next) => {
       
 
       if (bloqueo.lock_until && new Date() > new Date(bloqueo.lock_until)) {
-        await req.db.query("UPDATE tblipbloqueados SET Intentos = NULL WHERE idUsuarios = ?", [usuario.idUsuarios]);
+        await req.db.query("UPDATE tblipbloqueados SET Intentos = NULL, Fecha= NULL, Hora= NULL, lock_until=NULL WHERE idUsuarios = ?", [usuario.idUsuarios]);
         console.log("Tiempo de bloqueo expirado, desbloqueando.");
       } else if (bloqueo.Intentos >= MAX_FAILED_ATTEMPTS) {
         const tiempoRestante = Math.ceil((new Date(bloqueo.lock_until) - new Date()) / 1000);
@@ -313,7 +313,7 @@ usuarioRouter.post("/desbloquear/:idUsuario", async (req, res) => {
 
   try {
     await req.db.query(
-      `UPDATE tblipbloqueados SET  bloqueado = FALSE, Intentos = 0, IntentosReales = 0, lock_until = NULL WHERE idUsuarios = ?`,
+      `UPDATE tblipbloqueados SET  bloqueado = FALSE, Intentos = 0,  lock_until = NULL WHERE idUsuarios = ?`,
       [idUsuario]
     );
     res.status(200).json({ message: "Usuario desbloqueado manualmente." });
