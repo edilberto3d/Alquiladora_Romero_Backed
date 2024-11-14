@@ -33,7 +33,6 @@ if (!process.env.SECRET_KEY) {
 }
 const SECRET_KEY = process.env.SECRET_KEY.padEnd(32, " ");
 
-
 //Encriptamos el clientId
 function encryptClientId(clientId) {
   const IV_LENGTH = 16;
@@ -93,20 +92,18 @@ otplib.authenticator.options = {
   window: 2,
 };
 
-
-
 //Ruta para detectar la latancia de la red
 usuarioRouter.get("/ping", (req, res) => {
   res.status(200).json({ message: "conexion estable" });
 });
-
 
 //===================================================LOGIN
 //Login
 usuarioRouter.post("/login", async (req, res, next) => {
   try {
     // Extraer email, contraseña y token MFA (si se incluye)
-    const { email, contrasena, tokenMFA, clientTimestamp, deviceType } = req.body;
+    const { email, contrasena, tokenMFA, clientTimestamp, deviceType } =
+      req.body;
     console.log(
       "Este es los datos que recibe del login",
       email,
@@ -138,11 +135,16 @@ usuarioRouter.post("/login", async (req, res, next) => {
 
     // Si no se encuentra el usuario
     if (usuarios.length === 0) {
-      await registrarAuditoria("Desconocido", email, "Intento de inicio de sesión fallido", deviceType, ip, "Usuario no encontrado");
+      await registrarAuditoria(
+        "Desconocido",
+        email,
+        "Intento de inicio de sesión fallido",
+        deviceType,
+        ip,
+        "Usuario no encontrado"
+      );
       console.log("Usuario no existe");
-      return res
-        .status(404)
-        .json({ message: "Usuario no existe." });
+      return res.status(404).json({ message: "Usuario no existe." });
     }
 
     const usuario = usuarios[0];
@@ -155,34 +157,59 @@ usuarioRouter.post("/login", async (req, res, next) => {
     if (bloqueos.length > 0) {
       const bloqueo = bloqueos[0];
 
-      // if (bloqueo.bloqueado === 1) {
-      //   await registrarAuditoria(usuario.Nombre, email, "Intento fallido: cuenta bloqueada por el administrador", deviceType, ip, "Cuenta bloqueada");
-      //   return res.status(403).json({ message: "Esta cuenta fue bloqueada por el administrador." });
-      // }
+      if (bloqueo.bloqueado === 1 || bloqueo.bloqueado===true) {
+        await registrarAuditoria(
+          usuario.Nombre,
+          email,
+          "Intento fallido: cuenta bloqueada por el administrador",
+          deviceType,
+          ip,
+          "Cuenta bloqueada"
+        );
+        return res
+          .status(403)
+          .json({ message: "Esta cuenta fue bloqueada por el administrador." });
+      }
 
-      
 
       if (bloqueo.lock_until && new Date() > new Date(bloqueo.lock_until)) {
-        await req.db.query("UPDATE tblipbloqueados SET Intentos = NULL, Fecha= NULL, Hora= NULL, lock_until=NULL WHERE idUsuarios = ?", [usuario.idUsuarios]);
+        await req.db.query(
+          "UPDATE tblipbloqueados SET Intentos = NULL, Fecha= NULL, Hora= NULL, lock_until=NULL WHERE idUsuarios = ?",
+          [usuario.idUsuarios]
+        );
         console.log("Tiempo de bloqueo expirado, desbloqueando.");
       } else if (bloqueo.Intentos >= MAX_FAILED_ATTEMPTS) {
-        const tiempoRestante = Math.ceil((new Date(bloqueo.lock_until) - new Date()) / 1000);
-        console.log("Tiempo restante del desbloqueo", tiempoRestante);
-        await registrarAuditoria(usuario.Nombre, email, `Bloqueado por ${tiempoRestante} segundos`, deviceType, ip, "Usuario bloqueado");
-        return res.status(403).json({
-          message: `Bloqueado. Intenta en ${tiempoRestante} segundos.`,
-          tiempoRestante,
-        });
+        if (bloqueo.lock_until) {
+          const tiempoRestante = Math.ceil((new Date(bloqueo.lock_until) - new Date()) / 1000);
+          return res.status(403).json({
+              message: `Dispositivo bloqueado. Inténtalo de nuevo en ${tiempoRestante} segundos.`,
+              tiempoRestante,
+          });
+      } else {
+        
+          const lockUntil = new Date(Date.now() + LOCK_TIME);
+          await req.db.query("UPDATE tblipbloqueados SET lock_until = ? WHERE Ip = ? ", [lockUntil,  clientId]);
+          return res.status(403).json({
+              message: "Has superado el número máximo de intentos. Dispositivo bloqueado.",
+          });
+      }
+          
       }
     }
-
 
     // Comparar la contraseña con la base de datos
     const validPassword = await argon2.verify(usuario.Passw, contrasena);
 
     if (!validPassword) {
       await handleFailedAttempt(ip, clientId, usuario.idUsuarios, req.db);
-      await registrarAuditoria(usuario.Nombre, email, `Credenciales incorrectos`, deviceType, ip, "Error de incio de sesion");
+      await registrarAuditoria(
+        usuario.Nombre,
+        email,
+        `Credenciales incorrectos`,
+        deviceType,
+        ip,
+        "Error de incio de sesion"
+      );
       return res
         .status(401)
         .json({ message: "Correo o contraseña incorrectos." });
@@ -192,8 +219,15 @@ usuarioRouter.post("/login", async (req, res, next) => {
 
     if (usuario.mfa_secret) {
       if (!tokenMFA) {
-        await registrarAuditoria(usuario.Nombre, email, `MFA requerido. Por favor ingresa el código de verificación MFA.`, deviceType, ip, "Error de incio de sesion");
-  
+        await registrarAuditoria(
+          usuario.Nombre,
+          email,
+          `MFA requerido. Por favor ingresa el código de verificación MFA.`,
+          deviceType,
+          ip,
+          "Error de incio de sesion"
+        );
+
         return res.status(200).json({
           message:
             "MFA requerido. Por favor ingresa el código de verificación MFA.",
@@ -210,8 +244,15 @@ usuarioRouter.post("/login", async (req, res, next) => {
       console.log(isValidMFA);
 
       if (!isValidMFA) {
-        await registrarAuditoria(usuario.Nombre, email, `Código MFA incorrecto.`, deviceType, ip, "Error de incio de sesion");
-  
+        await registrarAuditoria(
+          usuario.Nombre,
+          email,
+          `Código MFA incorrecto.`,
+          deviceType,
+          ip,
+          "Error de incio de sesion"
+        );
+
         return res.status(400).json({ message: "Código MFA incorrecto." });
       }
     }
@@ -245,10 +286,10 @@ usuarioRouter.post("/login", async (req, res, next) => {
       await req.db.query(sessionQuery, [
         usuario.idUsuarios,
         token,
-        clientTimestamp,  
+        clientTimestamp,
         ip,
         clientId,
-        deviceType   
+        deviceType,
       ]);
       console.log("Sesión insertada en tblsesiones");
     } catch (insertError) {
@@ -265,14 +306,20 @@ usuarioRouter.post("/login", async (req, res, next) => {
         rol: usuario.Rol,
       },
     });
-    await registrarAuditoria(usuario.Nombre, email, "Inicio de sesión exitoso", deviceType, ip, "Usuario autenticado correctamente");
+    await registrarAuditoria(
+      usuario.Nombre,
+      email,
+      "Inicio de sesión exitoso",
+      deviceType,
+      ip,
+      "Usuario autenticado correctamente"
+    );
     console.log("Login exitoso");
   } catch (error) {
     console.error("Error en el login:", error);
     next(error);
   }
 });
-
 
 //==================================================SOSPECHOSOS
 usuarioRouter.get("/usuarios-sospechosos", async (req, res) => {
@@ -282,7 +329,7 @@ usuarioRouter.get("/usuarios-sospechosos", async (req, res) => {
        FROM tblusuarios u
        JOIN tblipbloqueados b ON u.idUsuarios = b.idUsuarios
        WHERE b.intentos >= ? OR b.bloqueado = TRUE`,
-      [MAX_FAILED_ATTEMPTS]  
+      [MAX_FAILED_ATTEMPTS]
     );
     res.status(200).json(usuarios);
   } catch (error) {
@@ -290,8 +337,6 @@ usuarioRouter.get("/usuarios-sospechosos", async (req, res) => {
     res.status(500).json({ message: "Error al obtener usuarios sospechosos" });
   }
 });
-
-
 
 usuarioRouter.post("/bloquear/:idUsuario", async (req, res) => {
   const { idUsuario } = req.params;
@@ -323,14 +368,7 @@ usuarioRouter.post("/desbloquear/:idUsuario", async (req, res) => {
   }
 });
 
-
-
-
-
 //==============================================================
-
-
-
 
 //qr
 usuarioRouter.post("/enable-mfa", async (req, res) => {
@@ -397,7 +435,9 @@ async function handleFailedAttempt(ip, clientId, idUsuarios, db) {
       "INSERT INTO tblipbloqueados (idUsuarios, Ip, clienteId, Fecha, Hora, Intentos, IntentosReales, bloqueado) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
       [idUsuarios, ip, clientId, fechaActual, horaActual, 1, 1, false]
     );
-    logger.info(`Registro de bloqueo creado para el usuario con ID ${idUsuarios}`);
+    logger.info(
+      `Registro de bloqueo creado para el usuario con ID ${idUsuarios}`
+    );
   } else {
     // Si ya existe un registro, actualizamos los intentos fallidos
     const bloqueo = result[0];
@@ -409,22 +449,34 @@ async function handleFailedAttempt(ip, clientId, idUsuarios, db) {
       const lockUntil = new Date(Date.now() + LOCK_TIME);
       await db.query(
         "UPDATE tblipbloqueados SET Intentos = ?, IntentosReales = ?, Fecha = ?, Hora = ?, lock_until = ?  WHERE idUsuarios = ?",
-        [newAttempts, newRealAttempts, fechaActual, horaActual, lockUntil, idUsuarios]
+        [
+          newAttempts,
+          newRealAttempts,
+          fechaActual,
+          horaActual,
+          lockUntil,
+          idUsuarios,
+        ]
       );
-      logger.info(`Usuario ${idUsuarios} ha alcanzado el número máximo de intentos. Bloqueado hasta ${lockUntil}`);
+      logger.info(
+        `Usuario ${idUsuarios} ha alcanzado el número máximo de intentos. Bloqueado hasta ${lockUntil}`
+      );
     } else {
       await db.query(
         "UPDATE tblipbloqueados SET Intentos = ?, IntentosReales = ?, Fecha = ?, Hora = ? WHERE idUsuarios = ?",
         [newAttempts, newRealAttempts, fechaActual, horaActual, idUsuarios]
       );
-      logger.info(`Usuario ${idUsuarios} ha fallado otro intento. Total intentos fallidos: ${newAttempts}`);
+      logger.info(
+        `Usuario ${idUsuarios} ha fallado otro intento. Total intentos fallidos: ${newAttempts}`
+      );
     }
   }
 
   // Registrar el intento fallido
-  logger.warn(`Intento fallido desde IP: ${ip} y clientId: ${clientId} para el usuario con ID ${idUsuarios}`);
+  logger.warn(
+    `Intento fallido desde IP: ${ip} y clientId: ${clientId} para el usuario con ID ${idUsuarios}`
+  );
 }
-
 
 //======================================================================
 
@@ -448,12 +500,10 @@ const verifyToken = async (req, res, next) => {
 
     if (sessions.length === 0) {
       // Sesión no encontrada o finalizada
-      return res
-        .status(401)
-        .json({
-          message:
-            "Sesión inválida o expirada. Por favor, inicia sesión nuevamente.",
-        });
+      return res.status(401).json({
+        message:
+          "Sesión inválida o expirada. Por favor, inicia sesión nuevamente.",
+      });
     }
 
     // Si el token expira en menos de 2 minutos, renovamos el token
@@ -500,11 +550,6 @@ const verifyToken = async (req, res, next) => {
     }
   }
 };
-
-
-
-
-
 
 // Ruta protegida
 usuarioRouter.get("/perfil", verifyToken, async (req, res) => {
@@ -704,11 +749,15 @@ usuarioRouter.post("/cerrar-todas-sesiones", async (req, res) => {
   const currentToken = req.cookies.sesionToken;
 
   if (!userId || !deviceTime) {
-    return res.status(400).json({ message: "userId y hora del dispositivo son requeridos." });
+    return res
+      .status(400)
+      .json({ message: "userId y hora del dispositivo son requeridos." });
   }
 
   if (!currentToken) {
-    return res.status(400).json({ message: "Token de sesión no encontrado en las cookies." });
+    return res
+      .status(400)
+      .json({ message: "Token de sesión no encontrado en las cookies." });
   }
 
   try {
@@ -717,7 +766,11 @@ usuarioRouter.post("/cerrar-todas-sesiones", async (req, res) => {
       SET horaFin = ?
       WHERE idUsuario = ? AND horaFin IS NULL AND tokenSesion != ?
     `;
-    const [result] = await req.db.query(query, [deviceTime, userId, currentToken]);
+    const [result] = await req.db.query(query, [
+      deviceTime,
+      userId,
+      currentToken,
+    ]);
 
     res.json({
       message: "Todas las sesiones excepto la actual han sido cerradas.",
@@ -874,14 +927,13 @@ usuarioRouter.post("/change-password", async (req, res) => {
       [idUsuario, hashedPassword]
     );
 
-   
-    const [updatedHistorial]  = await req.db.query(
+    const [updatedHistorial] = await req.db.query(
       "SELECT * FROM tblhistorialpass WHERE idUsuarios = ? ORDER BY created_at DESC",
       [idUsuario]
     );
 
     if (updatedHistorial.length > 3) {
-       const oldestPasswordId = updatedHistorial[updatedHistorial.length - 1].id;
+      const oldestPasswordId = updatedHistorial[updatedHistorial.length - 1].id;
       await req.db.query("DELETE FROM tblhistorialpass WHERE id = ?", [
         oldestPasswordId,
       ]);
@@ -891,7 +943,6 @@ usuarioRouter.post("/change-password", async (req, res) => {
       "UPDATE tblsesiones SET horaFin = NOW() WHERE idUsuario = ? AND horaFin IS NULL",
       [idUsuario]
     );
-    
 
     // Eliminar la cookie de sesión
     res.clearCookie("sesionToken", {
@@ -937,7 +988,7 @@ usuarioRouter.post("/sesiones", async (req, res) => {
 
     // Identificar la sesión actual (token coincide con el del usuario)
     const currentToken = req.cookies.sesionToken;
-    const sessionsWithCurrentFlag = sessions.map(session => ({
+    const sessionsWithCurrentFlag = sessions.map((session) => ({
       ...session,
       isCurrent: session.tokenSesion === currentToken,
     }));
@@ -945,12 +996,13 @@ usuarioRouter.post("/sesiones", async (req, res) => {
     res.json(sessionsWithCurrentFlag);
   } catch (error) {
     console.error("Error al obtener las sesiones del usuario:", error);
-    res.status(500).json({ message: "Error al obtener las sesiones del usuario." });
+    res
+      .status(500)
+      .json({ message: "Error al obtener las sesiones del usuario." });
   }
 });
 
 //=========================================================================================
-
 
 // Obtener todos los usuarios con información adicional
 usuarioRouter.get("/lista", async (req, res, next) => {
@@ -1019,11 +1071,9 @@ usuarioRouter.post("/session-expired", async (req, res) => {
     );
 
     if (sessions.length === 0) {
-      return res
-        .status(404)
-        .json({
-          message: "No se encontró una sesión activa para este usuario.",
-        });
+      return res.status(404).json({
+        message: "No se encontró una sesión activa para este usuario.",
+      });
     }
 
     const session = sessions[0];
@@ -1052,21 +1102,33 @@ usuarioRouter.post("/session-expired", async (req, res) => {
 
 //=================================AUDITORIA=================================================
 usuarioRouter.post("/auditoria", async (req, res) => {
-  const { usuario, correo, accion, dispositivo, ip, fecha_hora, detalles } = req.body;
+  const { usuario, correo, accion, dispositivo, ip, fecha_hora, detalles } =
+    req.body;
 
   try {
     const query = `
       INSERT INTO auditoria (usuario, correo, accion, dispositivo, ip, fecha_hora, detalles)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
-    await req.db.query(query, [usuario, correo, accion, dispositivo, ip, fecha_hora, detalles]);
-    res.status(200).json({ message: "Registro de auditoría almacenado correctamentex" });
+    await req.db.query(query, [
+      usuario,
+      correo,
+      accion,
+      dispositivo,
+      ip,
+      fecha_hora,
+      detalles,
+    ]);
+    res
+      .status(200)
+      .json({ message: "Registro de auditoría almacenado correctamentex" });
   } catch (error) {
     console.error("Error al guardar el registro de auditoría:", error);
-    res.status(500).json({ message: "Error al guardar el registro de auditoría" });
+    res
+      .status(500)
+      .json({ message: "Error al guardar el registro de auditoría" });
   }
 });
-
 
 usuarioRouter.get("/auditoria/lista", async (req, res) => {
   try {
@@ -1089,10 +1151,11 @@ usuarioRouter.get("/auditoria/lista", async (req, res) => {
     res.status(200).json(auditorias);
   } catch (error) {
     console.error("Error al obtener los registros de auditoría:", error);
-    res.status(500).json({ message: "Error al obtener los registros de auditoría" });
+    res
+      .status(500)
+      .json({ message: "Error al obtener los registros de auditoría" });
   }
 });
-
 
 //==================================================================================
 
