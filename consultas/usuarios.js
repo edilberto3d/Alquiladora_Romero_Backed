@@ -408,10 +408,10 @@ async function handleFailedAttempt(ip, clientId, idUsuarios, db) {
   );
 
   if (result.length === 0) {
-    // Si no hay registros, insertamos uno nuevo con Intentos e IntentosReales inicializados en 1
+    // Si no hay registros, insertamos uno nuevo
     await db.query(
-      "INSERT INTO tblipbloqueados (idUsuarios, Ip, clienteId, Fecha, Hora, Intentos, IntentosReales, bloqueado) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-      [idUsuarios, ip, clientId, fechaActual, horaActual, 1, 1, false]
+      "INSERT INTO tblipbloqueados (idUsuarios, Ip, clienteId, Fecha, Hora, Intentos) VALUES (?, ?, ?, ?, ?, ?)",
+      [idUsuarios, ip, clientId, fechaActual, horaActual, 1]
     );
     logger.info(
       `Registro de bloqueo creado para el usuario con ID ${idUsuarios}`
@@ -420,29 +420,20 @@ async function handleFailedAttempt(ip, clientId, idUsuarios, db) {
     // Si ya existe un registro, actualizamos los intentos fallidos
     const bloqueo = result[0];
     const newAttempts = bloqueo.Intentos + 1;
-    const newRealAttempts = bloqueo.IntentosReales + 1;
 
-    // Determinar si el usuario debe ser bloqueado
     if (newAttempts >= MAX_FAILED_ATTEMPTS) {
       const lockUntil = new Date(Date.now() + LOCK_TIME);
       await db.query(
-        "UPDATE tblipbloqueados SET Intentos = ?, IntentosReales = ?, Fecha = ?, Hora = ?, lock_until = ?  WHERE idUsuarios = ?",
-        [
-          newAttempts,
-          newRealAttempts,
-          fechaActual,
-          horaActual,
-          lockUntil,
-          idUsuarios,
-        ]
+        "UPDATE tblipbloqueados SET Intentos = ?, Fecha = ?, Hora = ?, lock_until = ? WHERE idUsuarios = ?",
+        [newAttempts, fechaActual, horaActual, lockUntil, idUsuarios]
       );
       logger.info(
         `Usuario ${idUsuarios} ha alcanzado el número máximo de intentos. Bloqueado hasta ${lockUntil}`
       );
     } else {
       await db.query(
-        "UPDATE tblipbloqueados SET Intentos = ?, IntentosReales = ?, Fecha = ?, Hora = ? WHERE idUsuarios = ?",
-        [newAttempts, newRealAttempts, fechaActual, horaActual, idUsuarios]
+        "UPDATE tblipbloqueados SET Intentos = ?, Fecha = ?, Hora = ? WHERE idUsuarios = ?",
+        [newAttempts, fechaActual, horaActual, idUsuarios]
       );
       logger.info(
         `Usuario ${idUsuarios} ha fallado otro intento. Total intentos fallidos: ${newAttempts}`
