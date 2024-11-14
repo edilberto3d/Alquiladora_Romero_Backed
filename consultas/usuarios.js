@@ -35,7 +35,7 @@ const SECRET_KEY = process.env.SECRET_KEY.padEnd(32, " ");
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, 
-  max: 5, 
+  max: 30, 
   message: "Demasiados intentos de inicio de sesión. Inténtalo más tarde."
 });
 
