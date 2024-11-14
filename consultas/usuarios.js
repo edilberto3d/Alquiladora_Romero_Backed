@@ -389,45 +389,37 @@ async function handleFailedAttempt(ip, clientId, idUsuarios, db) {
   );
 
   if (result.length === 0) {
-    // Si no hay registros, insertamos uno nuevo
+    // Si no hay registros, insertamos uno nuevo con Intentos e IntentosReales inicializados en 1
     await db.query(
       "INSERT INTO tblipbloqueados (idUsuarios, Ip, clienteId, Fecha, Hora, Intentos, IntentosReales, bloqueado) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
       [idUsuarios, ip, clientId, fechaActual, horaActual, 1, 1, false]
-
     );
-    logger.info(
-      `Registro de bloqueo creado para el usuario con ID ${idUsuarios}`
-    );
+    logger.info(`Registro de bloqueo creado para el usuario con ID ${idUsuarios}`);
   } else {
     // Si ya existe un registro, actualizamos los intentos fallidos
     const bloqueo = result[0];
     const newAttempts = bloqueo.Intentos + 1;
     const newRealAttempts = bloqueo.IntentosReales + 1;
 
+    // Determinar si el usuario debe ser bloqueado
     if (newAttempts >= MAX_FAILED_ATTEMPTS) {
       const lockUntil = new Date(Date.now() + LOCK_TIME);
       await db.query(
         "UPDATE tblipbloqueados SET Intentos = ?, IntentosReales = ?, Fecha = ?, Hora = ?, lock_until = ?, bloqueado = ? WHERE idUsuarios = ?",
         [newAttempts, newRealAttempts, fechaActual, horaActual, lockUntil, true, idUsuarios]
       );
-      logger.info(
-        `Usuario ${idUsuarios} ha alcanzado el número máximo de intentos. Bloqueado hasta ${lockUntil}`
-      );
+      logger.info(`Usuario ${idUsuarios} ha alcanzado el número máximo de intentos. Bloqueado hasta ${lockUntil}`);
     } else {
       await db.query(
         "UPDATE tblipbloqueados SET Intentos = ?, IntentosReales = ?, Fecha = ?, Hora = ? WHERE idUsuarios = ?",
         [newAttempts, newRealAttempts, fechaActual, horaActual, idUsuarios]
       );
-      logger.info(
-        `Usuario ${idUsuarios} ha fallado otro intento. Total intentos fallidos: ${newAttempts}`
-      );
+      logger.info(`Usuario ${idUsuarios} ha fallado otro intento. Total intentos fallidos: ${newAttempts}`);
     }
   }
 
   // Registrar el intento fallido
-  logger.warn(
-    `Intento fallido desde IP: ${ip} y clientId: ${clientId} para el usuario con ID ${idUsuarios}`
-  );
+  logger.warn(`Intento fallido desde IP: ${ip} y clientId: ${clientId} para el usuario con ID ${idUsuarios}`);
 }
 
 
