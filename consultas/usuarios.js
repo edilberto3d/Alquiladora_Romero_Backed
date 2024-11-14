@@ -270,6 +270,65 @@ usuarioRouter.post("/login", async (req, res, next) => {
   }
 });
 
+
+//==================================================SOSPECHOSOS
+usuarioRouter.get("/usuarios-sospechosos", async (req, res) => {
+  try {
+    const [usuarios] = await req.db.query(
+      `SELECT u.idUsuarios, u.Nombre, u.ApellidoP, u.Correo, b.intentos AS Intentos, b.intentosReales AS IntentosReales, b.bloqueado
+       FROM tblusuarios u
+       JOIN tblipbloqueados b ON u.idUsuarios = b.idUsuarios
+       WHERE b.intentos >= ? OR b.bloqueado = TRUE`,
+      [MAX_FAILED_ATTEMPTS]  
+    );
+    res.status(200).json(usuarios);
+  } catch (error) {
+    console.error("Error al obtener usuarios sospechosos:", error);
+    res.status(500).json({ message: "Error al obtener usuarios sospechosos" });
+  }
+});
+
+
+
+usuarioRouter.post("/bloquear/:idUsuario", async (req, res) => {
+  const { idUsuario } = req.params;
+
+  try {
+    await req.db.query(
+      `UPDATE tblipbloqueados bloqueado = TRUE WHERE idUsuarios = ?`,
+      [idUsuario]
+    );
+    res.status(200).json({ message: "Usuario bloqueado manualmente." });
+  } catch (error) {
+    console.error("Error al bloquear usuario:", error);
+    res.status(500).json({ message: "Error al bloquear usuario." });
+  }
+});
+
+usuarioRouter.post("/desbloquear/:idUsuario", async (req, res) => {
+  const { idUsuario } = req.params;
+
+  try {
+    await req.db.query(
+      `UPDATE tblipbloqueados SET  bloqueado = FALSE, Intentos = 0, IntentosReales = 0, lock_until = NULL WHERE idUsuarios = ?`,
+      [idUsuario]
+    );
+    res.status(200).json({ message: "Usuario desbloqueado manualmente." });
+  } catch (error) {
+    console.error("Error al desbloquear usuario:", error);
+    res.status(500).json({ message: "Error al desbloquear usuario." });
+  }
+});
+
+
+
+
+
+//==============================================================
+
+
+
+
 //qr
 usuarioRouter.post("/enable-mfa", async (req, res) => {
   try {
