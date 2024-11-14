@@ -451,9 +451,9 @@ const verifyToken = async (req, res, next) => {
 
 
 //Ruta para detectar la latancia de la red
-usuarioRouter.get("/ping", (req,res)=>{
-  res.status(200),json({message:"pong"});
-})
+usuarioRouter.get("/ping", (req, res) => {
+  res.status(200).json({ message: "pong" });
+});
 
 
 // Ruta protegida
