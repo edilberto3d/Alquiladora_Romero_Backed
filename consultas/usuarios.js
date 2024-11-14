@@ -838,7 +838,7 @@ usuarioRouter.post("/change-password", async (req, res) => {
     );
 
     await req.db.query(
-      "INSERT INTO auditoria_cambio_contrasena (idUsuarios, nombre, apellidoP, apellidoM, correo, intentos) VALUES (?, ?, ?, ?, ?, ?)",
+      "INSERT INTO auditoria_cambios_contrasena (idUsuario, nombre, apellidoP, apellidoM, correo, intentos) VALUES (?, ?, ?, ?, ?, ?)",
       [idUsuario, usuario[0].Nombre, usuario[0].ApellidoP, usuario[0].ApellidoM, usuario[0].Correo, historico.length]
     );
 
@@ -851,14 +851,14 @@ usuarioRouter.get("/auditoria/cambio-contrasena", async (req, res) => {
   try {
     const query = `
       SELECT 
-        idUsuarios, 
+        idUsuario, 
         nombre, 
         apellidoP, 
         apellidoM, 
         correo, 
         COUNT(*) AS intentos 
-      FROM auditoria_cambio_contrasena 
-      GROUP BY idUsuarios, nombre, apellidoP, apellidoM, correo
+      FROM auditoria_cambios_contrasena 
+      GROUP BY idUsuario, nombre, apellidoP, apellidoM, correo
       HAVING intentos >= 1
     `;
     const [usuariosSospechosos] = await req.db.query(query);
