@@ -831,52 +831,7 @@ usuarioRouter.post("/change-password", async (req, res) => {
       "UPDATE tblsesiones SET horaFin = NOW() WHERE idUsuario = ? AND horaFin IS NULL",
       [idUsuario]
     );
-
-    const [usuario] = await req.db.query(
-      "SELECT Nombre, ApellidoP, ApellidoM, Correo FROM tblusuarios WHERE idUsuarios = ?",
-      [idUsuario]
-    );
-
-    await req.db.query(
-      "INSERT INTO auditoria_cambios_contrasena (idUsuario, nombre, apellidoP, apellidoM, correo, intentos) VALUES (?, ?, ?, ?, ?, ?)",
-      [idUsuario, usuario[0].Nombre, usuario[0].ApellidoP, usuario[0].ApellidoM, usuario[0].Correo, historico.length]
-    );
-
-
-
-    //AUDITORIA DE CONTRASEÑA Y USUARIOS SOSPECHOSOS
-  //=======================================================================
-// Obtener usuarios sospechosos de cambio de contraseña
-usuarioRouter.get("/auditoria/cambio-contrasena", async (req, res) => {
-  try {
-    const query = `
-      SELECT 
-        idUsuario, 
-        nombre, 
-        apellidoP, 
-        apellidoM, 
-        correo, 
-        COUNT(*) AS intentos 
-      FROM auditoria_cambios_contrasena 
-      GROUP BY idUsuario, nombre, apellidoP, apellidoM, correo
-      HAVING intentos >= 1
-    `;
-    const [usuariosSospechosos] = await req.db.query(query);
-    res.json(usuariosSospechosos);
-  } catch (error) {
-    console.error("Error al obtener usuarios sospechosos:", error);
-    res.status(500).json({ message: "Error al obtener usuarios sospechosos." });
-  }
-});
-
-
-
-
-  
-  //=======================================================================
-
-
-
+    
 
     // Eliminar la cookie de sesión
     res.clearCookie("sesionToken", {
