@@ -102,8 +102,7 @@ usuarioRouter.get("/ping", (req, res) => {
 usuarioRouter.post("/login", async (req, res, next) => {
   try {
     // Extraer email, contraseña y token MFA (si se incluye)
-    const { email, contrasena, tokenMFA, clientTimestamp, deviceType } =
-      req.body;
+    const { email, contrasena, tokenMFA, clientTimestamp, deviceType } = req.body;
     console.log(
       "Este es los datos que recibe del login",
       email,
@@ -135,16 +134,11 @@ usuarioRouter.post("/login", async (req, res, next) => {
 
     // Si no se encuentra el usuario
     if (usuarios.length === 0) {
-      await registrarAuditoria(
-        "Desconocido",
-        email,
-        "Intento de inicio de sesión fallido",
-        deviceType,
-        ip,
-        "Usuario no encontrado"
-      );
-      console.log("Usuario no existe");
-      return res.status(404).json({ message: "Usuario no existe." });
+      await registrarAuditoria("Desconocido", email, "Intento de inicio de sesión fallido", deviceType, ip, "Usuario no encontrado");
+      console.log("Correo o contraseña incorrectos");
+      return res
+        .status(401)
+        .json({ message: "Correo o contraseña incorrectos." });
     }
 
     const usuario = usuarios[0];
@@ -156,42 +150,28 @@ usuarioRouter.post("/login", async (req, res, next) => {
 
     if (bloqueos.length > 0) {
       const bloqueo = bloqueos[0];
-
-      if (bloqueo.bloqueado === 1 || bloqueo.bloqueado===true) {
-        await registrarAuditoria(
-          usuario.Nombre,
-          email,
-          "Intento fallido: cuenta bloqueada por el administrador",
-          deviceType,
-          ip,
-          "Cuenta bloqueada"
-        );
-        return res
-          .status(403)
-          .json({ message: "Esta cuenta fue bloqueada por el administrador." });
-      }
-
-
-      if (bloqueos.length > 0) {
-        const bloqueo = bloqueos[0];
-        if (bloqueo.lock_until && new Date() > new Date(bloqueo.lock_until)) {
-          await req.db.query("DELETE FROM tblipbloqueados WHERE idUsuarios = ?", [
-            usuario.idUsuarios,
-          ]);
-          console.log("Tiempo de bloqueo expirado, desbloqueando.");
+      if (bloqueo.lock_until && new Date() > new Date(bloqueo.lock_until)) {
+        await req.db.query("DELETE FROM tblipbloqueados WHERE idUsuarios = ?", [
+          usuario.idUsuarios,
+        ]);
+        console.log("Tiempo de bloqueo expirado, desbloqueando.");
       } else if (bloqueo.Intentos >= MAX_FAILED_ATTEMPTS) {
         const tiempoRestante = Math.ceil(
           (new Date(bloqueo.lock_until) - new Date()) / 1000
         );
         console.log("Tiempo restante del desbloqueo", tiempoRestante);
-
-        await registrarAuditoria(usuario.Nombre, email,` Dispositivo bloqueado. Inténtalo de nuevo en ${tiempoRestante} segundos., deviceType, ip, "Usuario bloqueado"`);
+        await registrarAuditoria(
+          usuario.Nombre,
+          email,
+          `Dispositivo bloqueado. Inténtalo de nuevo en ${tiempoRestante} segundos.`,
+          deviceType,
+          ip,
+          "Usuario bloqueado"
+        );
         return res.status(403).json({
-          message:` Dispositivo bloqueado. Inténtalo de nuevo en ${tiempoRestante} segundos.`,
+          message: `Dispositivo bloqueado. Inténtalo de nuevo en ${tiempoRestante} segundos.`,
           tiempoRestante,
-          });
-      } 
-          
+        });
       }
     }
 
@@ -203,10 +183,10 @@ usuarioRouter.post("/login", async (req, res, next) => {
       await registrarAuditoria(
         usuario.Nombre,
         email,
-        `Credenciales incorrectos`,
+        "Credenciales incorrectos",
         deviceType,
         ip,
-        "Error de incio de sesion"
+        "Error de inicio de sesión"
       );
       return res
         .status(401)
@@ -220,10 +200,10 @@ usuarioRouter.post("/login", async (req, res, next) => {
         await registrarAuditoria(
           usuario.Nombre,
           email,
-          `MFA requerido. Por favor ingresa el código de verificación MFA.`,
+          "MFA requerido. Por favor ingresa el código de verificación MFA.",
           deviceType,
           ip,
-          "Error de incio de sesion"
+          "Error de inicio de sesión"
         );
 
         return res.status(200).json({
@@ -233,7 +213,6 @@ usuarioRouter.post("/login", async (req, res, next) => {
           userId: usuario.idUsuarios,
         });
       }
-
       // Si se recibió un tokenMFA, verificarlo
       const isValidMFA = otplib.authenticator.check(
         tokenMFA,
@@ -245,10 +224,10 @@ usuarioRouter.post("/login", async (req, res, next) => {
         await registrarAuditoria(
           usuario.Nombre,
           email,
-          `Código MFA incorrecto.`,
+          "Código MFA incorrecto.",
           deviceType,
           ip,
-          "Error de incio de sesion"
+          "Error de inicio de sesión"
         );
 
         return res.status(400).json({ message: "Código MFA incorrecto." });
@@ -284,10 +263,10 @@ usuarioRouter.post("/login", async (req, res, next) => {
       await req.db.query(sessionQuery, [
         usuario.idUsuarios,
         token,
-        clientTimestamp,
+        clientTimestamp,  
         ip,
         clientId,
-        deviceType,
+        deviceType   
       ]);
       console.log("Sesión insertada en tblsesiones");
     } catch (insertError) {
@@ -318,6 +297,7 @@ usuarioRouter.post("/login", async (req, res, next) => {
     next(error);
   }
 });
+
 
 //==================================================SOSPECHOSOS
 usuarioRouter.get("/usuarios-sospechosos", async (req, res) => {
