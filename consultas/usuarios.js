@@ -154,7 +154,7 @@ usuarioRouter.post("/login", async (req, res, next) => {
 
     if (bloqueos.length > 0) {
       const bloqueo = bloqueos[0];
-      
+
       if (bloqueo.bloqueado) {
         await registrarAuditoria(usuario.Nombre, email, "Intento fallido: cuenta bloqueada por el administrador", deviceType, ip, "Cuenta bloqueada");
         return res.status(403).json({ message: "Esta cuenta fue bloqueada por el administrador." });
@@ -175,6 +175,7 @@ usuarioRouter.post("/login", async (req, res, next) => {
         });
       }
     }
+
 
     // Comparar la contraseña con la base de datos
     const validPassword = await argon2.verify(usuario.Passw, contrasena);
@@ -407,8 +408,8 @@ async function handleFailedAttempt(ip, clientId, idUsuarios, db) {
     if (newAttempts >= MAX_FAILED_ATTEMPTS) {
       const lockUntil = new Date(Date.now() + LOCK_TIME);
       await db.query(
-        "UPDATE tblipbloqueados SET Intentos = ?, IntentosReales = ?, Fecha = ?, Hora = ?, lock_until = ?, bloqueado = ? WHERE idUsuarios = ?",
-        [newAttempts, newRealAttempts, fechaActual, horaActual, lockUntil, true, idUsuarios]
+        "UPDATE tblipbloqueados SET Intentos = ?, IntentosReales = ?, Fecha = ?, Hora = ?, lock_until = ?  WHERE idUsuarios = ?",
+        [newAttempts, newRealAttempts, fechaActual, horaActual, lockUntil, idUsuarios]
       );
       logger.info(`Usuario ${idUsuarios} ha alcanzado el número máximo de intentos. Bloqueado hasta ${lockUntil}`);
     } else {
