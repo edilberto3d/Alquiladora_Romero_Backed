@@ -153,13 +153,15 @@ usuarioRouter.post("/login", async (req, res, next) => {
     const [bloqueos] = await req.db.query(bloqueoQuery, [usuario.idUsuarios]);
 
     if (bloqueos.length > 0) {
-
+      const bloqueo = bloqueos[0];
+      
       if (bloqueo.bloqueado) {
         await registrarAuditoria(usuario.Nombre, email, "Intento fallido: cuenta bloqueada por el administrador", deviceType, ip, "Cuenta bloqueada");
         return res.status(403).json({ message: "Esta cuenta fue bloqueada por el administrador." });
       }
 
-      const bloqueo = bloqueos[0];
+      
+
       if (bloqueo.lock_until && new Date() > new Date(bloqueo.lock_until)) {
         await req.db.query("UPDATE tblipbloqueados SET Intentos = 0, bloqueado = false, lock_until = NULL WHERE idUsuarios = ?", [usuario.idUsuarios]);
         console.log("Tiempo de bloqueo expirado, desbloqueando.");
