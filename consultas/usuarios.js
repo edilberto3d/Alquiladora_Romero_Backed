@@ -401,8 +401,8 @@ async function handleFailedAttempt(ip, clientId, idUsuarios, db) {
   } else {
     // Si ya existe un registro, actualizamos los intentos fallidos
     const bloqueo = result[0];
-    const newAttempts = bloqueo.Intentos ++;
-    const newRealAttempts = bloqueo.IntentosReales ++;
+    const newAttempts = bloqueo.Intentos + 1;
+    const newRealAttempts = bloqueo.IntentosReales + 1;
 
     if (newAttempts >= MAX_FAILED_ATTEMPTS) {
       const lockUntil = new Date(Date.now() + LOCK_TIME);
