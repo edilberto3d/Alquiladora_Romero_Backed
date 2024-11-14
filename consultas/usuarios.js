@@ -14,6 +14,7 @@ usuarioRouter.use(cookieParser());
 
 const otplib = require("otplib");
 const qrcode = require("qrcode");
+const { json } = require("body-parser");
 
 // Configurar winston logger
 const logger = winston.createLogger({
@@ -445,6 +446,15 @@ const verifyToken = async (req, res, next) => {
     }
   }
 };
+
+
+
+
+//Ruta para detectar la latancia de la red
+usuarioRouter.get("/ping", (req,res)=>{
+  res.status(200),json({message:"pong"});
+})
+
 
 // Ruta protegida
 usuarioRouter.get("/perfil", verifyToken, async (req, res) => {
@@ -998,7 +1008,7 @@ usuarioRouter.post("/auditoria", async (req, res) => {
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
     await req.db.query(query, [usuario, correo, accion, dispositivo, ip, fecha_hora, detalles]);
-    res.status(200).json({ message: "Registro de auditoría almacenado correctamente" });
+    res.status(200).json({ message: "Registro de auditoría almacenado correctamentex" });
   } catch (error) {
     console.error("Error al guardar el registro de auditoría:", error);
     res.status(500).json({ message: "Error al guardar el registro de auditoría" });
