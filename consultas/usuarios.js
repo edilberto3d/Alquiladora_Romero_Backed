@@ -33,11 +33,6 @@ if (!process.env.SECRET_KEY) {
 }
 const SECRET_KEY = process.env.SECRET_KEY.padEnd(32, " ");
 
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, 
-  max: 100, 
-  message: "Demasiados intentos de inicio de sesión. Inténtalo más tarde."
-});
 
 //Encriptamos el clientId
 function encryptClientId(clientId) {
@@ -108,7 +103,7 @@ usuarioRouter.get("/ping", (req, res) => {
 
 //===================================================LOGIN
 //Login
-usuarioRouter.post("/login",loginLimiter, async (req, res, next) => {
+usuarioRouter.post("/login", async (req, res, next) => {
   try {
     // Extraer email, contraseña y token MFA (si se incluye)
     const { email, contrasena, tokenMFA, clientTimestamp, deviceType } = req.body;

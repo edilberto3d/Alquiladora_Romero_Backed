@@ -66,19 +66,13 @@ const pool = mysql.createPool({
 
 });
 
-app.set("trust proxy", true);
+
+
 // Middleware de seguridad
 app.use(helmet()); 
 app.use(express.json());
 app.use(cookieParser());
 
-
-const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 100, // Máximo 100 solicitudes por IP en 15 minutos
-  message: "Demasiadas solicitudes. Inténtalo de nuevo más tarde."
-});
-app.use(globalLimiter);
 
 
 
