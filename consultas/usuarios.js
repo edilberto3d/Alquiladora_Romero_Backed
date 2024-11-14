@@ -155,7 +155,7 @@ usuarioRouter.post("/login", async (req, res, next) => {
     if (bloqueos.length > 0) {
       const bloqueo = bloqueos[0];
 
-      if (bloqueo.bloqueado) {
+      if (bloqueo.bloqueado === 1) {
         await registrarAuditoria(usuario.Nombre, email, "Intento fallido: cuenta bloqueada por el administrador", deviceType, ip, "Cuenta bloqueada");
         return res.status(403).json({ message: "Esta cuenta fue bloqueada por el administrador." });
       }
@@ -163,7 +163,7 @@ usuarioRouter.post("/login", async (req, res, next) => {
       
 
       if (bloqueo.lock_until && new Date() > new Date(bloqueo.lock_until)) {
-        await req.db.query("UPDATE tblipbloqueados SET Intentos = 0, bloqueado = false, lock_until = NULL WHERE idUsuarios = ?", [usuario.idUsuarios]);
+        await req.db.query("UPDATE tblipbloqueados SET Intentos = NULL WHERE idUsuarios = ?", [usuario.idUsuarios]);
         console.log("Tiempo de bloqueo expirado, desbloqueando.");
       } else if (bloqueo.Intentos >= MAX_FAILED_ATTEMPTS) {
         const tiempoRestante = Math.ceil((new Date(bloqueo.lock_until) - new Date()) / 1000);
