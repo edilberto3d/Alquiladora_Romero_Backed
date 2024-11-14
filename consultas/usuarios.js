@@ -33,19 +33,11 @@ if (!process.env.SECRET_KEY) {
 }
 const SECRET_KEY = process.env.SECRET_KEY.padEnd(32, " ");
 
-const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 100, // Máximo 100 solicitudes por IP
-  message: "Demasiadas solicitudes. Inténtalo de nuevo más tarde.",
-});
-usuarioRouter.use(globalLimiter);
-// Limitador específico para login
 const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 5, // Máximo 5 intentos de login en 15 minutos
-  message: "Demasiados intentos de inicio de sesión. Inténtalo más tarde.",
+  windowMs: 15 * 60 * 1000, 
+  max: 5, 
+  message: "Demasiados intentos de inicio de sesión. Inténtalo más tarde."
 });
-
 
 //Encriptamos el clientId
 function encryptClientId(clientId) {
@@ -144,10 +136,10 @@ usuarioRouter.post("/login",loginLimiter, async (req, res, next) => {
     // Si no se encuentra el usuario
     if (usuarios.length === 0) {
       await registrarAuditoria("Desconocido", email, "Intento de inicio de sesión fallido", deviceType, ip, "Usuario no encontrado");
-      console.log("Correo o contraseña incorrectos");
+      console.log("Usuario no existe");
       return res
-        .status(401)
-        .json({ message: "Correo o contraseña incorrectos." });
+        .status(404)
+        .json({ message: "Usuario no existe." });
     }
 
     const usuario = usuarios[0];
@@ -450,10 +442,6 @@ const verifyToken = async (req, res, next) => {
 
 
 
-//Ruta para detectar la latancia de la red
-usuarioRouter.get("/ping", (req, res) => {
-  res.status(200).json({ message: "pong" });
-});
 
 
 // Ruta protegida

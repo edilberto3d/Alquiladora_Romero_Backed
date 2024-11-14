@@ -10,6 +10,7 @@ const cookieParser = require("cookie-parser");
 const helmet = require("helmet"); 
 const path = require('path'); 
 const fs = require('fs');
+const rateLimit = require("express-rate-limit");
 
 
 
@@ -65,10 +66,24 @@ const pool = mysql.createPool({
 
 });
 
+app.set("trust proxy", true);
 // Middleware de seguridad
 app.use(helmet()); 
 app.use(express.json());
 app.use(cookieParser());
+
+
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, 
+  max: 100, 
+  message: "Demasiadas solicitudes. Inténtalo de nuevo más tarde."
+});
+app.use(globalLimiter);
+
+//Ruta para detectar la latancia de la red
+app.get("/ping", (req, res) => {
+  res.status(200).json({ message: "conexion estable" });
+});
 
 
 
