@@ -154,7 +154,7 @@ app.get('/api/logs', async (req, res) => {
     });
 
     const logs = [];
-    const maxLogs = 50; 
+    const maxLogs = 50; // Limita el número de logs que se envían
 
     for (const file of logFiles) {
       const logPath = path.join(logDirectory, file);
@@ -171,17 +171,16 @@ app.get('/api/logs', async (req, res) => {
   }
 });
 
+
 // Middleware de manejo de errores de CSRF
 app.use((err, req, res, next) => {
   if (err.code === 'EBADCSRFTOKEN') {
-  
     res.status(403).json({ message: 'Token CSRF inválido o faltante.' });
   } else {
-    next(err); 
+    next(err);
   }
 });
 
-// Middleware global para manejo de errores
 app.use((err, req, res, next) => {
   const errorDetails = {
     message: err.message,
@@ -199,6 +198,7 @@ app.use((err, req, res, next) => {
     error: errorDetails, 
   });
 });
+
 
 
 // Iniciamos el servidor

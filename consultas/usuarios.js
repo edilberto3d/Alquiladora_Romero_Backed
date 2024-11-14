@@ -331,6 +331,7 @@ usuarioRouter.post("/bloquear/:idUsuario", async (req, res) => {
   }
 });
 
+
 usuarioRouter.post("/desbloquear/:idUsuario", async (req, res) => {
   const { idUsuario } = req.params;
 
