@@ -101,7 +101,7 @@ otplib.authenticator.options = {
 
 
 //Ruta para detectar la latancia de la red
-app.get("/ping", (req, res) => {
+usuarioRouter.get("/ping", (req, res) => {
   res.status(200).json({ message: "conexion estable" });
 });
 
