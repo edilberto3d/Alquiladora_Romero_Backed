@@ -844,6 +844,38 @@ usuarioRouter.post("/change-password", async (req, res) => {
 
 
 
+    //AUDITORIA DE CONTRASEÑA Y USUARIOS SOSPECHOSOS
+  //=======================================================================
+// Obtener usuarios sospechosos de cambio de contraseña
+usuarioRouter.get("/auditoria/cambio-contrasena", async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        idUsuarios, 
+        nombre, 
+        apellidoP, 
+        apellidoM, 
+        correo, 
+        COUNT(*) AS intentos 
+      FROM auditoria_cambio_contrasena 
+      GROUP BY idUsuarios, nombre, apellidoP, apellidoM, correo
+      HAVING intentos >= 1
+    `;
+    const [usuariosSospechosos] = await req.db.query(query);
+    res.json(usuariosSospechosos);
+  } catch (error) {
+    console.error("Error al obtener usuarios sospechosos:", error);
+    res.status(500).json({ message: "Error al obtener usuarios sospechosos." });
+  }
+});
+
+
+
+
+  
+  //=======================================================================
+
+
 
 
     // Eliminar la cookie de sesión
