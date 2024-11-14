@@ -35,7 +35,7 @@ const SECRET_KEY = process.env.SECRET_KEY.padEnd(32, " ");
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, 
-  max: 30, 
+  max: 100, 
   message: "Demasiados intentos de inicio de sesión. Inténtalo más tarde."
 });
 
@@ -97,6 +97,14 @@ function getOrCreateClientId(req, res) {
 otplib.authenticator.options = {
   window: 2,
 };
+
+
+
+//Ruta para detectar la latancia de la red
+app.get("/ping", (req, res) => {
+  res.status(200).json({ message: "conexion estable" });
+});
+
 
 //===================================================LOGIN
 //Login
