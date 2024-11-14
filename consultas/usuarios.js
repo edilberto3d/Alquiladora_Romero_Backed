@@ -155,10 +155,10 @@ usuarioRouter.post("/login", async (req, res, next) => {
     if (bloqueos.length > 0) {
       const bloqueo = bloqueos[0];
 
-      if (bloqueo.bloqueado === 1) {
-        await registrarAuditoria(usuario.Nombre, email, "Intento fallido: cuenta bloqueada por el administrador", deviceType, ip, "Cuenta bloqueada");
-        return res.status(403).json({ message: "Esta cuenta fue bloqueada por el administrador." });
-      }
+      // if (bloqueo.bloqueado === 1) {
+      //   await registrarAuditoria(usuario.Nombre, email, "Intento fallido: cuenta bloqueada por el administrador", deviceType, ip, "Cuenta bloqueada");
+      //   return res.status(403).json({ message: "Esta cuenta fue bloqueada por el administrador." });
+      // }
 
       
 
