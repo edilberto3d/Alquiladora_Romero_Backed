@@ -832,6 +832,20 @@ usuarioRouter.post("/change-password", async (req, res) => {
       [idUsuario]
     );
 
+    const [usuario] = await req.db.query(
+      "SELECT Nombre, ApellidoP, ApellidoM, Correo FROM tblusuarios WHERE idUsuarios = ?",
+      [idUsuario]
+    );
+
+    await req.db.query(
+      "INSERT INTO auditoria_cambio_contrasena (idUsuarios, nombre, apellidoP, apellidoM, correo, intentos) VALUES (?, ?, ?, ?, ?, ?)",
+      [idUsuario, usuario[0].Nombre, usuario[0].ApellidoP, usuario[0].ApellidoM, usuario[0].Correo, historico.length]
+    );
+
+
+
+
+
     // Eliminar la cookie de sesión
     res.clearCookie("sesionToken", {
       httpOnly: true,
