@@ -816,12 +816,12 @@ usuarioRouter.post("/change-password", async (req, res) => {
     );
 
    
-    const [historial] = await req.db.query(
+    const [updatedHistorial]  = await req.db.query(
       "SELECT * FROM tblhistorialpass WHERE idUsuarios = ? ORDER BY created_at DESC",
       [idUsuario]
     );
 
-    if (historial.length > 3) {
+    if (updatedHistorial.length > 3) {
        const oldestPasswordId = updatedHistorial[updatedHistorial.length - 1].id;
       await req.db.query("DELETE FROM tblhistorialpass WHERE id = ?", [
         oldestPasswordId,
