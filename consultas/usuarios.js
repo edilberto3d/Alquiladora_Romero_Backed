@@ -820,10 +820,11 @@ usuarioRouter.post("/change-password", async (req, res) => {
       "SELECT * FROM tblhistorialpass WHERE idUsuarios = ? ORDER BY created_at DESC",
       [idUsuario]
     );
+
     if (historial.length > 3) {
-      const oldPasswordId = historial[3].id;
+       const oldestPasswordId = updatedHistorial[updatedHistorial.length - 1].id;
       await req.db.query("DELETE FROM tblhistorialpass WHERE id = ?", [
-        oldPasswordId,
+        oldestPasswordId,
       ]);
     }
     // Cerrar todas las sesiones activas del usuario
