@@ -140,7 +140,7 @@ usuarioRouter.post("/login", async (req, res, next) => {
       console.log("Correo o contraseña incorrectos");
       return res
         .status(401)
-        .json({ message: "Correo o contraseña incorrectos." });
+        .json({ message: "Credenciales Incorrectos" });
     }
    //=================================================================================================== 
    //Usuario encontrado
@@ -171,15 +171,31 @@ usuarioRouter.post("/login", async (req, res, next) => {
     
       // **2. Verificar si el tiempo de bloqueo ha expirado**
       if (lockUntil && lockUntil > ahora) {
-        const tiempoRestante = Math.ceil((lockUntil - ahora) / 1000); // Tiempo restante en segundos
+        const tiempoRestante = Math.ceil((lockUntil - ahora) / 1000);
         console.log(`Bloqueo activo. Tiempo restante: ${tiempoRestante} segundos.`);
-    
+        if (lockUntil && lockUntil > ahora) {
+          const tiempoRestanteSegundos = Math.ceil((lockUntil - ahora) / 1000); 
         
-    
-        return res.status(403).json({
-          message: `Dispositivo bloqueado. Inténtalo de nuevo en ${tiempoRestante} segundos.`,
-          tiempoRestante,
-        });
+          let tiempoRestanteMensaje;
+        
+          if (tiempoRestanteSegundos >= 60) {
+            const minutos = Math.floor(tiempoRestanteSegundos / 60);
+            const segundos = tiempoRestanteSegundos % 60;
+            tiempoRestanteMensaje = `${minutos} minuto${minutos !== 1 ? "s" : ""}${
+              segundos > 0 ? ` y ${segundos} segundo${segundos !== 1 ? "s" : ""}` : ""
+            }`;
+          } else {
+            tiempoRestanteMensaje = `${tiempoRestanteSegundos} segundo${
+              tiempoRestanteSegundos !== 1 ? "s" : ""
+            }`;
+          }
+        
+          console.log(`Bloqueo activo. Tiempo restante: ${tiempoRestanteMensaje}.`);
+          return res.status(403).json({
+            message: `Dispositivo bloqueado. Inténtalo de nuevo en ${tiempoRestanteMensaje}.`,
+            tiempoRestante: tiempoRestanteSegundos,
+          });
+        }    
       }
     
       // **3. Si el bloqueo ha expirado, desbloquear al usuario**
@@ -195,21 +211,11 @@ usuarioRouter.post("/login", async (req, res, next) => {
       }
     
       // **4. Verificar intentos fallidos excedidos**
-      if (bloqueo.Intentos > MAX_FAILED_ATTEMPTS) {
-        console.log("Intentos fallidos excedidos. Bloqueando usuario...");
-        const nuevoLockUntil = new Date(ahora.getTime() + BLOQUEO_TIEMPO_MS); // Tiempo de bloqueo adicional
-    
-        const bloqueoQuery = `
-          UPDATE tblipbloqueados 
-          SET lock_until = ?, Intentos = ? 
-          WHERE idUsuarios = ?`;
-        await req.db.query(bloqueoQuery, [nuevoLockUntil, bloqueo.Intentos, usuario.idUsuarios]);
-    
-        
-    
+      if (bloqueo.Intentos >= MAX_FAILED_ATTEMPTS) {
+        console.log("Intentos fallidos excedidos. Usuario Bloqueado");
         return res.status(403).json({
           message: `Demasiados intentos fallidos. Usuario bloqueado temporalmente.`,
-          tiempoBloqueo: BLOQUEO_TIEMPO_MS / 1000, // Tiempo de bloqueo en segundos
+          tiempoBloqueo: LOCK_TIME / 1000, // Tiempo de bloqueo en segundos
         });
       }
     }
@@ -433,7 +439,7 @@ async function handleFailedAttempt(ip, clientId, idUsuarios, db) {
     const newAttempts = bloqueo.Intentos + 1;
     const newIntentosReales= bloqueo.IntentosReales + 1;
 
-    if (newAttempts > MAX_FAILED_ATTEMPTS) {
+    if (newAttempts >= MAX_FAILED_ATTEMPTS) {
       const lockUntil = new Date(Date.now() + LOCK_TIME);
       await db.query(
         "UPDATE tblipbloqueados SET Intentos = ?, IntentosReales = ?, Fecha = ?, Hora = ?, lock_until = ? WHERE idUsuarios = ?",
