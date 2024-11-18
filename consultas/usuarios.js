@@ -136,7 +136,7 @@ usuarioRouter.post("/login", async (req, res, next) => {
 
     // Si no se encuentra el usuario
     if (usuarios.length === 0) {
-      await registrarAuditoria("Correo error", email, "El correo no esta registrado", deviceType, ip, "Usuario no encontrado");
+     
       console.log("Correo o contraseña incorrectos");
       return res
         .status(401)
@@ -163,14 +163,7 @@ usuarioRouter.post("/login", async (req, res, next) => {
       // **1. Verificar si el administrador bloqueó al usuario**
       if (bloqueo.bloqueado === 1) {
         console.log("Usuario bloqueado por el administrador.");
-        await registrarAuditoria(
-          "Correo error",
-          email,
-          "Usuario bloqueado por el administrador",
-          deviceType,
-          ip,
-          "Usuario bloqueado"
-        );
+        
         return res.status(403).json({
           message: "Dispositivo bloqueado por el administrador.",
         });
@@ -181,14 +174,7 @@ usuarioRouter.post("/login", async (req, res, next) => {
         const tiempoRestante = Math.ceil((lockUntil - ahora) / 1000); // Tiempo restante en segundos
         console.log(`Bloqueo activo. Tiempo restante: ${tiempoRestante} segundos.`);
     
-        await registrarAuditoria(
-          usuario.Nombre,
-          email,
-          `Intento de acceso bloqueado. Tiempo restante: ${tiempoRestante} segundos.`,
-          deviceType,
-          ip,
-          "Intento fallido"
-        );
+        
     
         return res.status(403).json({
           message: `Dispositivo bloqueado. Inténtalo de nuevo en ${tiempoRestante} segundos.`,
@@ -219,14 +205,7 @@ usuarioRouter.post("/login", async (req, res, next) => {
           WHERE idUsuarios = ?`;
         await req.db.query(bloqueoQuery, [nuevoLockUntil, bloqueo.Intentos, usuario.idUsuarios]);
     
-        await registrarAuditoria(
-          usuario.Nombre,
-          email,
-          "Demasiados intentos fallidos. Usuario bloqueado temporalmente.",
-          deviceType,
-          ip,
-          "Bloqueo automático"
-        );
+        
     
         return res.status(403).json({
           message: `Demasiados intentos fallidos. Usuario bloqueado temporalmente.`,
@@ -242,14 +221,7 @@ usuarioRouter.post("/login", async (req, res, next) => {
 
     if (!validPassword) {
       await handleFailedAttempt(ip, clientId, usuario.idUsuarios, req.db);
-      await registrarAuditoria(
-        usuario.Nombre,
-        email,
-        "Credenciales incorrectos",
-        deviceType,
-        ip,
-        "Error de inicio de sesión"
-      );
+    
       return res
         .status(401)
         .json({ message: "Correo o contraseña incorrectos." });
@@ -259,14 +231,7 @@ usuarioRouter.post("/login", async (req, res, next) => {
 
     if (usuario.mfa_secret) {
       if (!tokenMFA) {
-        await registrarAuditoria(
-          usuario.Nombre,
-          email,
-          "MFA requerido. Por favor ingresa el código de verificación MFA.",
-          deviceType,
-          ip,
-          "Error de inicio de sesión"
-        );
+        
 
         return res.status(200).json({
           message:
@@ -283,15 +248,7 @@ usuarioRouter.post("/login", async (req, res, next) => {
       console.log(isValidMFA);
 
       if (!isValidMFA) {
-        await registrarAuditoria(
-          usuario.Nombre,
-          email,
-          "Código MFA incorrecto.",
-          deviceType,
-          ip,
-          "Error de inicio de sesión"
-        );
-
+        
         return res.status(400).json({ message: "Código MFA incorrecto." });
       }
     }
@@ -343,14 +300,7 @@ usuarioRouter.post("/login", async (req, res, next) => {
         rol: usuario.Rol,
       },
     });
-    await registrarAuditoria(
-      usuario.Nombre,
-      email,
-      "Inicio de sesión exitoso",
-      deviceType,
-      ip,
-      "Usuario autenticado correctamente"
-    );
+    
     console.log("Login exitoso");
   } catch (error) {
     console.error("Error en el login:", error);
