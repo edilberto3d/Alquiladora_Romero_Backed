@@ -137,7 +137,7 @@ usuarioRouter.post("/login", async (req, res, next) => {
     // Si no se encuentra el usuario
     if (usuarios.length === 0) {
      
-      console.log("Correo o contraseña incorrectos");
+      console.log("Credenciales Incorrectos");
       return res
         .status(401)
         .json({ message: "Credenciales Incorrectos" });
@@ -191,7 +191,7 @@ if (bloqueos.length > 0) {
         SET lock_until = ? 
         WHERE idUsuarios = ?`;
       await req.db.query(actualizarLockQuery, [lockTime, usuario.idUsuarios]);
-      bloqueo.lock_until = lockTime; // Actualizamos el objeto bloqueo en memoria
+      bloqueo.lock_until = lockTime; 
     }
 
     // **3.2. Calcular el tiempo restante de bloqueo**
@@ -212,7 +212,7 @@ if (bloqueos.length > 0) {
 
     console.log(`Usuario bloqueado temporalmente. Tiempo restante: ${tiempoRestanteMensaje}.`);
     return res.status(403).json({
-      message: `Demasiados intentos fallidos. Usuario bloqueado temporalmente. Inténtalo de nuevo en ${tiempoRestanteMensaje}.`,
+      message: `Usuario bloqueado temporalmente. Inténtalo de nuevo en ${tiempoRestanteMensaje}.`,
       tiempoRestante: tiempoRestanteSegundos,
     });
   }
@@ -229,7 +229,7 @@ if (bloqueos.length > 0) {
     
       return res
         .status(401)
-        .json({ message: "Correo o contraseña incorrectos." });
+        .json({ message: "Credenciales Incorrectos" });
     }
     //==============================================================MFA ATIVADO=====================
     console.log(usuario.mfa_secret);
