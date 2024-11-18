@@ -62,8 +62,6 @@ const pool = mysql.createPool({
   connectionLimit: 10, 
   queueLimit: 0,
   connectTimeout: 10000, 
-  acquireTimeout: 10000, 
-
 });
 
 
@@ -101,7 +99,7 @@ const csrfProtection = csrf({
     path: '/',
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production', 
-    sameSite: 'None', 
+    sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax', 
   },
   ignoreMethods: ['GET', 'HEAD', 'OPTIONS'],
 });

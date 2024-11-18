@@ -12,6 +12,7 @@ const usuarioRouter = express.Router();
 usuarioRouter.use(express.json());
 usuarioRouter.use(cookieParser());
 
+//==========================MFA=========================================
 const otplib = require("otplib");
 const qrcode = require("qrcode");
 const { json } = require("body-parser");
@@ -108,7 +109,8 @@ usuarioRouter.post("/login", async (req, res, next) => {
       email,
       contrasena,
       tokenMFA,
-      clientTimestamp
+      clientTimestamp,
+      deviceType
     );
 
     // Validar que se reciban los campos de email y contraseña
@@ -134,28 +136,44 @@ usuarioRouter.post("/login", async (req, res, next) => {
 
     // Si no se encuentra el usuario
     if (usuarios.length === 0) {
-      await registrarAuditoria("Desconocido", email, "Intento de inicio de sesión fallido", deviceType, ip, "Usuario no encontrado");
+      await registrarAuditoria("Correo error", email, "El correo no esta registrado", deviceType, ip, "Usuario no encontrado");
       console.log("Correo o contraseña incorrectos");
       return res
         .status(401)
         .json({ message: "Correo o contraseña incorrectos." });
     }
-
+   //=================================================================================================== 
+   //Usuario encontrado
     const usuario = usuarios[0];
     console.log("Usuario encontrado: ", usuario);
+    //=================================================================================================== 
+   
 
     // Verificar si el usuario está bloqueado
     const bloqueoQuery = "SELECT * FROM tblipbloqueados WHERE idUsuarios = ?";
-    const [bloqueos] = await req.db.query(bloqueoQuery, [usuario.idUsuarios]);
+    console.log("Este es el usaurio bloqueado", bloqueoQuery)
 
+    const [bloqueos] = await req.db.query(bloqueoQuery, [usuario.idUsuarios]);
+//================================================================================
     if (bloqueos.length > 0) {
       const bloqueo = bloqueos[0];
-      if (bloqueo.lock_until && new Date() > new Date(bloqueo.lock_until)) {
-        await req.db.query("DELETE FROM tblipbloqueados WHERE idUsuarios = ?", [
-          usuario.idUsuarios,
+      //Este es el bloqueo
+      console.log("Este es el bloqueo que obtuvo", bloqueo);
+     //Si el tiempo de bloqueo de bloqueado a llegado 
+      if (bloqueo.lock_until > new Date()) {
+        await req.db.query("UPDATE tblipbloqueados SET Intentos = ?, lock_until = ? WHERE idUsuarios = ?", [
+          0,  NULL , usuario.idUsuarios,
         ]);
+
         console.log("Tiempo de bloqueo expirado, desbloqueando.");
-      } else if (bloqueo.Intentos >= MAX_FAILED_ATTEMPTS) {
+      } else if(bloqueo.bloqueo===1){
+        console.log("Bloqueo activo por el administrador");
+        await registrarAuditoria("Correo error", email, "El correo fue bloqueado por el administrador", deviceType, ip, "Usuario bloqueado");
+        return res.status(403).json({
+          message: `Dispositivo bloqueado por el administrador.`,
+        });
+      }
+      else if (bloqueo.Intentos > MAX_FAILED_ATTEMPTS) {
         const tiempoRestante = Math.ceil(
           (new Date(bloqueo.lock_until) - new Date()) / 1000
         );
@@ -174,6 +192,7 @@ usuarioRouter.post("/login", async (req, res, next) => {
         });
       }
     }
+    //================================================================================
 
     // Comparar la contraseña con la base de datos
     const validPassword = await argon2.verify(usuario.Passw, contrasena);
@@ -234,10 +253,7 @@ usuarioRouter.post("/login", async (req, res, next) => {
       }
     }
 
-    // Eliminar intentos fallidos si la autenticación es exitosa
-    // await req.db.query("DELETE FROM tblipbloqueados WHERE idUsuarios = ?", [
-    //   usuario.idUsuarios,
-    // ]);
+  
 
     // Generar token JWT
     const token = jwt.sign(
@@ -411,8 +427,8 @@ async function handleFailedAttempt(ip, clientId, idUsuarios, db) {
   if (result.length === 0) {
     // Si no hay registros, insertamos uno nuevo
     await db.query(
-      "INSERT INTO tblipbloqueados (idUsuarios, Ip, clienteId, Fecha, Hora, Intentos) VALUES (?, ?, ?, ?, ?, ?)",
-      [idUsuarios, ip, clientId, fechaActual, horaActual, 1]
+      "INSERT INTO tblipbloqueados (idUsuarios, Ip, clienteId, Fecha, Hora, Intentos, IntentosReales,bloqueado) VALUES (?, ?, ?, ?, ?, ?, ? , ? )",
+      [idUsuarios, ip, clientId, fechaActual, horaActual, 1,1,0]
     );
     logger.info(
       `Registro de bloqueo creado para el usuario con ID ${idUsuarios}`
@@ -421,20 +437,21 @@ async function handleFailedAttempt(ip, clientId, idUsuarios, db) {
     // Si ya existe un registro, actualizamos los intentos fallidos
     const bloqueo = result[0];
     const newAttempts = bloqueo.Intentos + 1;
+    const newIntentosReales= bloqueo.IntentosReales + 1;
 
-    if (newAttempts >= MAX_FAILED_ATTEMPTS) {
+    if (newAttempts > MAX_FAILED_ATTEMPTS) {
       const lockUntil = new Date(Date.now() + LOCK_TIME);
       await db.query(
-        "UPDATE tblipbloqueados SET Intentos = ?, Fecha = ?, Hora = ?, lock_until = ? WHERE idUsuarios = ?",
-        [newAttempts, fechaActual, horaActual, lockUntil, idUsuarios]
+        "UPDATE tblipbloqueados SET Intentos = ?, IntentosReales = ?, Fecha = ?, Hora = ?, lock_until = ? WHERE idUsuarios = ?",
+        [newAttempts,newIntentosReales, fechaActual, horaActual, lockUntil, idUsuarios]
       );
       logger.info(
         `Usuario ${idUsuarios} ha alcanzado el número máximo de intentos. Bloqueado hasta ${lockUntil}`
       );
     } else {
       await db.query(
-        "UPDATE tblipbloqueados SET Intentos = ?, Fecha = ?, Hora = ? WHERE idUsuarios = ?",
-        [newAttempts, fechaActual, horaActual, idUsuarios]
+        "UPDATE tblipbloqueados SET Intentos = ?, IntentosReales = ?, Fecha = ?, Hora = ? WHERE idUsuarios = ?",
+        [newAttempts, newIntentosReales, fechaActual, horaActual, idUsuarios]
       );
       logger.info(
         `Usuario ${idUsuarios} ha fallado otro intento. Total intentos fallidos: ${newAttempts}`
