@@ -151,47 +151,90 @@ usuarioRouter.post("/login", async (req, res, next) => {
 
     // Verificar si el usuario está bloqueado
     const bloqueoQuery = "SELECT * FROM tblipbloqueados WHERE idUsuarios = ?";
-    console.log("Este es el usaurio bloqueado", bloqueoQuery)
-
     const [bloqueos] = await req.db.query(bloqueoQuery, [usuario.idUsuarios]);
-//================================================================================
+    
     if (bloqueos.length > 0) {
-      const bloqueo = bloqueos[0];
-      //Este es el bloqueo
-      console.log("Este es el bloqueo que obtuvo", bloqueo);
-     //Si el tiempo de bloqueo de bloqueado a llegado 
-      if (bloqueo.lock_until > new Date()) {
-        await req.db.query("UPDATE tblipbloqueados SET Intentos = ?, lock_until = ? WHERE idUsuarios = ?", [
-          0,  NULL , usuario.idUsuarios,
-        ]);
-
-        console.log("Tiempo de bloqueo expirado, desbloqueando.");
-      } else if(bloqueo.bloqueo===1){
-        console.log("Bloqueo activo por el administrador");
-        await registrarAuditoria("Correo error", email, "El correo fue bloqueado por el administrador", deviceType, ip, "Usuario bloqueado");
-        return res.status(403).json({
-          message: `Dispositivo bloqueado por el administrador.`,
-        });
-      }
-      else if (bloqueo.Intentos > MAX_FAILED_ATTEMPTS) {
-        const tiempoRestante = Math.ceil(
-          (new Date(bloqueo.lock_until) - new Date()) / 1000
-        );
-        console.log("Tiempo restante del desbloqueo", tiempoRestante);
+      const bloqueo = bloqueos[0]; // Primer registro del bloqueo
+      const ahora = new Date();
+      const lockUntil = bloqueo.lock_until ? new Date(bloqueo.lock_until) : null;
+    
+      console.log("Detalles del bloqueo obtenido:", bloqueo);
+    
+      // **1. Verificar si el administrador bloqueó al usuario**
+      if (bloqueo.bloqueado === 1) {
+        console.log("Usuario bloqueado por el administrador.");
         await registrarAuditoria(
-          usuario.Nombre,
+          "Correo error",
           email,
-          `Dispositivo bloqueado. Inténtalo de nuevo en ${tiempoRestante} segundos.`,
+          "Usuario bloqueado por el administrador",
           deviceType,
           ip,
           "Usuario bloqueado"
         );
         return res.status(403).json({
+          message: "Dispositivo bloqueado por el administrador.",
+        });
+      }
+    
+      // **2. Verificar si el tiempo de bloqueo ha expirado**
+      if (lockUntil && lockUntil > ahora) {
+        const tiempoRestante = Math.ceil((lockUntil - ahora) / 1000); // Tiempo restante en segundos
+        console.log(`Bloqueo activo. Tiempo restante: ${tiempoRestante} segundos.`);
+    
+        await registrarAuditoria(
+          usuario.Nombre,
+          email,
+          `Intento de acceso bloqueado. Tiempo restante: ${tiempoRestante} segundos.`,
+          deviceType,
+          ip,
+          "Intento fallido"
+        );
+    
+        return res.status(403).json({
           message: `Dispositivo bloqueado. Inténtalo de nuevo en ${tiempoRestante} segundos.`,
           tiempoRestante,
         });
       }
+    
+      // **3. Si el bloqueo ha expirado, desbloquear al usuario**
+      if (lockUntil && lockUntil <= ahora) {
+        console.log("El tiempo de bloqueo ha expirado. Desbloqueando usuario...");
+        const desbloqueoQuery = `
+          UPDATE tblipbloqueados 
+          SET Intentos = 0, lock_until = NULL 
+          WHERE idUsuarios = ?`;
+        await req.db.query(desbloqueoQuery, [usuario.idUsuarios]);
+    
+        console.log("Usuario desbloqueado correctamente.");
+      }
+    
+      // **4. Verificar intentos fallidos excedidos**
+      if (bloqueo.Intentos > MAX_FAILED_ATTEMPTS) {
+        console.log("Intentos fallidos excedidos. Bloqueando usuario...");
+        const nuevoLockUntil = new Date(ahora.getTime() + BLOQUEO_TIEMPO_MS); // Tiempo de bloqueo adicional
+    
+        const bloqueoQuery = `
+          UPDATE tblipbloqueados 
+          SET lock_until = ?, Intentos = ? 
+          WHERE idUsuarios = ?`;
+        await req.db.query(bloqueoQuery, [nuevoLockUntil, bloqueo.Intentos, usuario.idUsuarios]);
+    
+        await registrarAuditoria(
+          usuario.Nombre,
+          email,
+          "Demasiados intentos fallidos. Usuario bloqueado temporalmente.",
+          deviceType,
+          ip,
+          "Bloqueo automático"
+        );
+    
+        return res.status(403).json({
+          message: `Demasiados intentos fallidos. Usuario bloqueado temporalmente.`,
+          tiempoBloqueo: BLOQUEO_TIEMPO_MS / 1000, // Tiempo de bloqueo en segundos
+        });
+      }
     }
+    
     //================================================================================
 
     // Comparar la contraseña con la base de datos
