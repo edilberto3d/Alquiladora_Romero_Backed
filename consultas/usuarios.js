@@ -151,74 +151,73 @@ usuarioRouter.post("/login", async (req, res, next) => {
 
     // Verificar si el usuario está bloqueado
     const bloqueoQuery = "SELECT * FROM tblipbloqueados WHERE idUsuarios = ?";
-    const [bloqueos] = await req.db.query(bloqueoQuery, [usuario.idUsuarios]);
-    
-    if (bloqueos.length > 0) {
-      const bloqueo = bloqueos[0]; // Primer registro del bloqueo
-      const ahora = new Date();
-      const lockUntil = bloqueo.lock_until ? new Date(bloqueo.lock_until) : null;
-    
-      console.log("Detalles del bloqueo obtenido:", bloqueo);
-    
-      // **1. Verificar si el administrador bloqueó al usuario**
-      if (bloqueo.bloqueado === 1) {
-        console.log("Usuario bloqueado por el administrador.");
-        
-        return res.status(403).json({
-          message: "Dispositivo bloqueado por el administrador.",
-        });
-      }
-    
-      // **2. Verificar si el tiempo de bloqueo ha expirado**
-      if (lockUntil && lockUntil > ahora) {
-        const tiempoRestante = Math.ceil((lockUntil - ahora) / 1000);
-        console.log(`Bloqueo activo. Tiempo restante: ${tiempoRestante} segundos.`);
-        if (lockUntil && lockUntil > ahora) {
-          const tiempoRestanteSegundos = Math.ceil((lockUntil - ahora) / 1000); 
-        
-          let tiempoRestanteMensaje;
-        
-          if (tiempoRestanteSegundos >= 60) {
-            const minutos = Math.floor(tiempoRestanteSegundos / 60);
-            const segundos = tiempoRestanteSegundos % 60;
-            tiempoRestanteMensaje = `${minutos} minuto${minutos !== 1 ? "s" : ""}${
-              segundos > 0 ? ` y ${segundos} segundo${segundos !== 1 ? "s" : ""}` : ""
-            }`;
-          } else {
-            tiempoRestanteMensaje = `${tiempoRestanteSegundos} segundo${
-              tiempoRestanteSegundos !== 1 ? "s" : ""
-            }`;
-          }
-        
-          console.log(`Bloqueo activo. Tiempo restante: ${tiempoRestanteMensaje}.`);
-          return res.status(403).json({
-            message: `Dispositivo bloqueado. Inténtalo de nuevo en ${tiempoRestanteMensaje}.`,
-            tiempoRestante: tiempoRestanteSegundos,
-          });
-        }    
-      }
-    
-      // **3. Si el bloqueo ha expirado, desbloquear al usuario**
-      if (lockUntil && lockUntil <= ahora) {
-        console.log("El tiempo de bloqueo ha expirado. Desbloqueando usuario...");
-        const desbloqueoQuery = `
-          UPDATE tblipbloqueados 
-          SET Intentos = 0, lock_until = NULL 
-          WHERE idUsuarios = ?`;
-        await req.db.query(desbloqueoQuery, [usuario.idUsuarios]);
-    
-        console.log("Usuario desbloqueado correctamente.");
-      }
-    
-      // **4. Verificar intentos fallidos excedidos**
-      if (bloqueo.Intentos >= MAX_FAILED_ATTEMPTS) {
-        console.log("Intentos fallidos excedidos. Usuario Bloqueado");
-        return res.status(403).json({
-          message: `Demasiados intentos fallidos. Usuario bloqueado temporalmente.`,
-          tiempoBloqueo: LOCK_TIME / 1000, // Tiempo de bloqueo en segundos
-        });
-      }
+const [bloqueos] = await req.db.query(bloqueoQuery, [usuario.idUsuarios]);
+
+if (bloqueos.length > 0) {
+  const bloqueo = bloqueos[0]; 
+  const ahora = new Date();
+  const lockUntil = bloqueo.lock_until ? new Date(bloqueo.lock_until) : null;
+
+  console.log("Detalles del bloqueo obtenido:", bloqueo);
+
+  // **1. Verificar si el administrador bloqueó al usuario**
+  if (bloqueo.bloqueado === 1) {
+    console.log("Usuario bloqueado por el administrador.");
+    return res.status(403).json({
+      message: "Cuenta bloqueada por el administrador.",
+    });
+  }
+
+  // **2. Verificar si el tiempo de bloqueo ha expirado y desbloquear si es necesario**
+  if (lockUntil && lockUntil <= ahora) {
+    console.log("El tiempo de bloqueo ha expirado. Desbloqueando usuario...");
+    const desbloqueoQuery = `
+      UPDATE tblipbloqueados 
+      SET Intentos = 0, lock_until = NULL 
+      WHERE idUsuarios = ?`;
+    await req.db.query(desbloqueoQuery, [usuario.idUsuarios]);
+    bloqueo.Intentos = 0; // Actualizamos el objeto bloqueo en memoria
+    bloqueo.lock_until = null;
+    console.log("Usuario desbloqueado correctamente.");
+  }
+
+  // **3. Verificar si los intentos fallidos han excedido el máximo permitido**
+  if (bloqueo.Intentos >= MAX_FAILED_ATTEMPTS) {
+    // **3.1. Si lock_until no está establecido, establecerlo ahora**
+    if (!lockUntil) {
+      const lockTime = new Date(ahora.getTime() + LOCK_TIME);
+      const actualizarLockQuery = `
+        UPDATE tblipbloqueados 
+        SET lock_until = ? 
+        WHERE idUsuarios = ?`;
+      await req.db.query(actualizarLockQuery, [lockTime, usuario.idUsuarios]);
+      bloqueo.lock_until = lockTime; // Actualizamos el objeto bloqueo en memoria
     }
+
+    // **3.2. Calcular el tiempo restante de bloqueo**
+    const tiempoRestanteSegundos = Math.ceil((bloqueo.lock_until - ahora) / 1000);
+
+    let tiempoRestanteMensaje;
+    if (tiempoRestanteSegundos >= 60) {
+      const minutos = Math.floor(tiempoRestanteSegundos / 60);
+      const segundos = tiempoRestanteSegundos % 60;
+      tiempoRestanteMensaje = `${minutos} minuto${minutos !== 1 ? "s" : ""}${
+        segundos > 0 ? ` y ${segundos} segundo${segundos !== 1 ? "s" : ""}` : ""
+      }`;
+    } else {
+      tiempoRestanteMensaje = `${tiempoRestanteSegundos} segundo${
+        tiempoRestanteSegundos !== 1 ? "s" : ""
+      }`;
+    }
+
+    console.log(`Usuario bloqueado temporalmente. Tiempo restante: ${tiempoRestanteMensaje}.`);
+    return res.status(403).json({
+      message: `Demasiados intentos fallidos. Usuario bloqueado temporalmente. Inténtalo de nuevo en ${tiempoRestanteMensaje}.`,
+      tiempoRestante: tiempoRestanteSegundos,
+    });
+  }
+}
+
     
     //================================================================================
 
