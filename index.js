@@ -180,22 +180,25 @@ app.use((err, req, res, next) => {
 });
 
 app.use((err, req, res, next) => {
+  const statusCode = err.statusCode || 500; 
   const errorDetails = {
-    message: err.message,
-    stack: err.stack,
+    message: err.message || 'Error interno del servidor.',
+    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined, 
     method: req.method,
     url: req.originalUrl,
     ip: req.ip,
     timestamp: new Date().toISOString(),
   };
+
   console.error("Error capturado:", errorDetails);
   logger.error(errorDetails);
-  res.status(500).json({ 
+
+  res.status(statusCode).json({ 
     success: false, 
-    message: 'Ocurrió un error en el servidor. Nuestro equipo está trabajando para solucionarlo.',
-    error: errorDetails, 
+    message: err.message || 'Ocurrió un error en el servidor.',
   });
 });
+
 
 
 

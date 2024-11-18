@@ -287,7 +287,8 @@ usuarioRouter.post("/login", async (req, res, next) => {
       console.log("Sesión insertada en tblsesiones");
     } catch (insertError) {
       console.error("Error al insertar la sesión en tblsesiones:", insertError);
-      return res.status(500).json({ message: "Error al iniciar sesión." });
+      next(error);
+
     }
 
     // Responder con éxito
