@@ -996,6 +996,7 @@ usuarioRouter.get("/lista", async (req, res, next) => {
     const [usuarios] = await req.db.query(`
  SELECT 
       u.idUsuarios,
+      u.Correo,
       u.Nombre,
       u.ApellidoP,
       u.ApellidoM,
