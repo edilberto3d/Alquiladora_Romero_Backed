@@ -62,11 +62,13 @@ mfaRoute.post('/verify-mfa', async (req, res) => {
   
       // Generar la clave secreta para MFA
       const mfaSecret = otplib.authenticator.generateSecret();
-      const otpauthURL = otplib.authenticator.keyuri(  'Alquiladora Romero: '+usuario.Nombre + usuario.ApellidoP  , mfaSecret);
-  
+      const accountName = usuario.Correo; // O puedes usar usuario.Nombre + ' ' + usuario.ApellidoP
+      const issuer = 'Alquiladora Romero';
+      const otpauthURL = otplib.authenticator.keyuri(accountName, issuer, mfaSecret);
+      
       // Generar el código QR
       const qrCode = await qrcode.toDataURL(otpauthURL);
-  
+      
       // Guardar el MFA en la base de datos
       await req.db.query("UPDATE tblusuarios SET mfa_secret = ? WHERE idUsuarios = ?", [mfaSecret, usuario.idUsuarios]);
   
