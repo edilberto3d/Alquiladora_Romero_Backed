@@ -377,11 +377,12 @@ emailRouter.post('/cambiarpass',  async (req, res) => {
   console.log(correo,  shortUUID, nombreU, idUsuario)
 
  
-  // Expiración del token en 15 minutos (900000 ms)
-  const expiration = Date.now() + 900000;
+
+  const expiration = Date.now() + 10 * 60 * 1000; 
+
   const currentDate = new Date();
-  const fecha = currentDate.toISOString().split('T')[0]; // Formato YYYY-MM-DD
-  const hora = currentDate.toTimeString().split(' ')[0]; // Formato HH:MM:SS
+  const fecha = currentDate.toISOString().split('T')[0];
+  const hora = currentDate.toTimeString().split(' ')[0]; 
 
 
 
