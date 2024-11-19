@@ -63,7 +63,7 @@ mfaRoute.post('/verify-mfa', async (req, res) => {
       // Generar la clave secreta para MFA
       const mfaSecret = otplib.authenticator.generateSecret();
       const accountName = usuario.Nombre; 
-      const issuer = '--Alquiladora Romero';
+      const issuer = 'Alquiladora Romero';
       const otpauthURL = otplib.authenticator.keyuri(accountName, issuer, mfaSecret);
       
       // Generar el código QR
