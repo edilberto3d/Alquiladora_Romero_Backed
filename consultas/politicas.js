@@ -1,6 +1,5 @@
 const express = require("express");
 const csrf = require("csurf");
-const rateLimit = require("express-rate-limit");
 
 const politicasRouter = express.Router();
 politicasRouter.use(express.json());
@@ -49,31 +48,28 @@ politicasRouter.get("/", async (req, res) => {
   }
 });
 
-//====================================================================================================
 // Obtener una política para usuarios finales (sin autenticación)
 politicasRouter.get("/vigente", async (req, res) => {
   try {
     const [terminos] = await req.db.query(`
-    SELECT * 
-FROM politicas 
-WHERE estado = 'vigente' 
-  AND CURDATE() <= fechaVigencia 
-ORDER BY versio DESC 
-LIMIT 1
-
+      SELECT * 
+      FROM politicas 
+      WHERE estado = 'vigente' 
+        AND CURDATE() <= fechaVigencia 
+      ORDER BY versio DESC 
+      LIMIT 1
     `);
     if (terminos.length === 0) {
-      return res.status(404).json({ error: "No hay Poloticas vigentes" });
+      return res.status(404).json({ error: "No hay Políticas vigentes" });
     }
     res.json(terminos[0]);
   } catch (error) {
-    console.error("Error al obtener Politicas vigente:", error);
-    res.status(500).json({ error: "No se pudo obtener el Politicas vigente" });
+    console.error("Error al obtener Política vigente:", error);
+    res.status(500).json({ error: "No se pudo obtener la Política vigente" });
   }
 });
 
-//===================================================================
-// Obtener un Politicas por su ID
+// Obtener una política por su ID
 politicasRouter.get("/:id", async (req, res) => {
   const { id } = req.params;
 
@@ -84,18 +80,17 @@ politicasRouter.get("/:id", async (req, res) => {
     );
 
     if (termino.length === 0) {
-      return res.status(404).json({ error: "Politicas no encontrado" });
+      return res.status(404).json({ error: "Política no encontrada" });
     }
 
     res.json(termino[0]);
   } catch (error) {
-    console.error("Error al obtener el Polotica:", error);
-    res.status(500).json({ error: "No se pudo obtener el Polotica" });
+    console.error("Error al obtener la Política:", error);
+    res.status(500).json({ error: "No se pudo obtener la Política" });
   }
 });
 
-//===========================================================================================================
-// Crear un nuevo término (versión 1.0)
+// Crear una nueva política (versión 1.0 o incrementada)
 politicasRouter.post("/", csrfProtection, async (req, res) => {
   const { titulo, contenido, fechaVigencia, secciones } = req.body;
 
@@ -108,38 +103,52 @@ politicasRouter.post("/", csrfProtection, async (req, res) => {
       });
   }
 
+  let connection;
+
   try {
+    // Obtener una conexión para iniciar una transacción
+    connection = await req.db.getConnection();
+    await connection.beginTransaction();
+
     // Actualiza cualquier política existente en estado "vigente" a "no vigente"
-    await req.db.query(
+    await connection.query(
       "UPDATE politicas SET estado = 'no vigente' WHERE estado = 'vigente'"
     );
 
-    const [ultimoRegistro] = await req.db.query(
+    // Obtener la versión máxima existente
+    const [ultimoRegistro] = await connection.query(
       "SELECT MAX(versio) as ultimaVersion FROM politicas"
     );
-    const nuevaVersion = ultimoRegistro.ultimaVersion
-      ? (parseFloat(ultimoRegistro.ultimaVersion) + 1.0).toFixed(1)
+    const nuevaVersion = ultimoRegistro[0].ultimaVersion
+      ? (parseFloat(ultimoRegistro[0].ultimaVersion) + 1.0).toFixed(1)
       : "1.0";
 
-    const query =
-      "INSERT INTO politicas (titulo, contenido, fechaVigencia, secciones, versio, estado, created_at) VALUES (?, ?, ?, ?, ?, 'vigente', NOW())";
-    await req.db.query(query, [
+    // Insertar la nueva política con la nueva versión
+    const insertQuery =
+      "INSERT INTO politicas (titulo, contenido, fechaVigencia, secciones, versio, estado, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'vigente', NOW(), NOW())";
+
+    await connection.query(insertQuery, [
       titulo,
       contenido,
       fechaVigencia,
-      JSON.stringify(secciones),
+      JSON.stringify(secciones || []),
       nuevaVersion,
     ]);
 
+    // Commit de la transacción
+    await connection.commit();
+
     res.status(201).json({ message: "Política creada exitosamente" });
   } catch (error) {
+    if (connection) await connection.rollback();
     console.error("Error al crear la política:", error);
     res.status(500).json({ error: "No se pudo crear la política" });
+  } finally {
+    if (connection) connection.release();
   }
 });
 
-//===========================================================================================================
-// Crear una nueva versión de un término existente
+// Crear una nueva versión de una política existente
 politicasRouter.post("/:id/nueva-version", csrfProtection, async (req, res) => {
   const { id } = req.params;
   const { titulo, contenido, fechaVigencia, secciones } = req.body;
@@ -153,70 +162,100 @@ politicasRouter.post("/:id/nueva-version", csrfProtection, async (req, res) => {
       });
   }
 
+  let connection;
+
   try {
-    // Obtener el término actual
-    const [terminoActual] = await req.db.query(
-      "SELECT * FROM politicas WHERE id = ?",
+    // Obtener una conexión para iniciar una transacción
+    connection = await req.db.getConnection();
+    await connection.beginTransaction();
+
+    // Obtener el término actual y bloquearlo para evitar condiciones de carrera
+    const [terminoActual] = await connection.query(
+      "SELECT * FROM politicas WHERE id = ? FOR UPDATE",
       [id]
     );
 
     if (terminoActual.length === 0) {
-      return res.status(404).json({ error: "Término no encontrado" });
+      await connection.rollback();
+      return res.status(404).json({ error: "Política no encontrada" });
     }
 
+    const termino = terminoActual[0];
+
     // Marcar el término actual como 'no vigente'
-    await req.db.query(
+    await connection.query(
       "UPDATE politicas SET estado = 'no vigente' WHERE id = ?",
       [id]
     );
 
-    // Calcular nueva versión
-    const versionAnterior = parseFloat(terminoActual[0].versio);
-    const nuevaVersion = (versionAnterior + 1.0).toFixed(1);
+    // Obtener la versión máxima existente
+    const [ultimoRegistro] = await connection.query(
+      "SELECT MAX(versio) as ultimaVersion FROM politicas"
+    );
+    const nuevaVersion = ultimoRegistro[0].ultimaVersion
+      ? (parseFloat(ultimoRegistro[0].ultimaVersion) + 1.0).toFixed(1)
+      : "1.0";
 
-    // Insertar nueva versión
-    const query =
-      "INSERT INTO politicas (titulo, contenido, fechaVigencia, secciones, versio, estado, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())";
-    await req.db.query(query, [
+    // Insertar la nueva versión
+    const insertQuery =
+      "INSERT INTO politicas (titulo, contenido, fechaVigencia, secciones, versio, estado, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'vigente', NOW(), NOW())";
+
+    await connection.query(insertQuery, [
       titulo,
       contenido,
       fechaVigencia,
-      JSON.stringify(secciones),
+      JSON.stringify(secciones || []),
       nuevaVersion,
-      "vigente",
     ]);
+
+    // Commit de la transacción
+    await connection.commit();
 
     res
       .status(201)
-      .json({ message: "Nueva versión del término creada exitosamente" });
+      .json({ message: "Nueva versión de la política creada exitosamente" });
   } catch (error) {
+    if (connection) await connection.rollback();
     console.error("Error al crear nueva versión:", error);
     res.status(500).json({ error: "No se pudo crear la nueva versión" });
+  } finally {
+    if (connection) connection.release();
   }
 });
 
+// Eliminar una política
 politicasRouter.delete("/:id", csrfProtection, async (req, res) => {
   const { id } = req.params;
 
+  let connection;
+
   try {
-    const [politica] = await req.db.query(
-      "SELECT * FROM politicas WHERE id = ?",
+    // Obtener una conexión para iniciar una transacción
+    connection = await req.db.getConnection();
+    await connection.beginTransaction();
+
+    // Obtener la política a eliminar y bloquearla
+    const [politica] = await connection.query(
+      "SELECT * FROM politicas WHERE id = ? FOR UPDATE",
       [id]
     );
 
     if (politica.length === 0) {
+      await connection.rollback();
       return res.status(404).json({ error: "Política no encontrada" });
     }
 
+    const politicaActual = politica[0];
+
     // Marcar la política como "eliminada"
-    await req.db.query(
+    await connection.query(
       "UPDATE politicas SET estado = 'eliminado' WHERE id = ?",
       [id]
     );
 
     // Si la política eliminada era "vigente", busca la siguiente más reciente y válida
-    if (politica[0].estado === "vigente") {
-      const [ultimaPolitica] = await req.db.query(`
+    if (politicaActual.estado === "vigente") {
+      const [ultimaPolitica] = await connection.query(`
         SELECT * FROM politicas 
         WHERE estado = 'no vigente' AND fechaVigencia >= CURDATE() 
         ORDER BY fechaVigencia DESC, versio DESC 
@@ -224,17 +263,23 @@ politicasRouter.delete("/:id", csrfProtection, async (req, res) => {
       `);
 
       if (ultimaPolitica.length > 0) {
-        await req.db.query(
+        await connection.query(
           "UPDATE politicas SET estado = 'vigente' WHERE id = ?",
           [ultimaPolitica[0].id]
         );
       }
     }
 
+    // Commit de la transacción
+    await connection.commit();
+
     res.json({ message: "Política marcada como eliminada exitosamente" });
   } catch (error) {
+    if (connection) await connection.rollback();
     console.error("Error al eliminar la política:", error);
     res.status(500).json({ error: "No se pudo eliminar la política" });
+  } finally {
+    if (connection) connection.release();
   }
 });
 
