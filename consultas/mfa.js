@@ -29,7 +29,7 @@ mfaRoute.post('/verify-mfa', async (req, res) => {
       }
   
       const { mfa_secret } = usuarios[0];
-      console.log("Mfa_secret", {mfa_secret});
+      console.log("Alquiladora Romero", {mfa_secret});
   
       // Verificación del token MFA
       const isValidMFA = otplib.authenticator.check(token, mfa_secret);
@@ -62,7 +62,7 @@ mfaRoute.post('/verify-mfa', async (req, res) => {
   
       // Generar la clave secreta para MFA
       const mfaSecret = otplib.authenticator.generateSecret();
-      const otpauthURL = otplib.authenticator.keyuri(usuario.Correo, 'TuCodigoSecreto', mfaSecret);
+      const otpauthURL = otplib.authenticator.keyuri(usuario.Correo, 'Alquiladora Romero: ', mfaSecret);
   
       // Generar el código QR
       const qrCode = await qrcode.toDataURL(otpauthURL);
