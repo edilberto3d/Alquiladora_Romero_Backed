@@ -189,39 +189,47 @@ emailRouter.post('/send',  async (req, res) => {
     const emailData = {
       sender: { name: "Alquiladora Romero", email: "alquiladoraromero@isoftuthh.com" },
       to: [{ email: correo, name: destinatario }],
-      subject: "Código de verificación",
+      subject: "Código de verificación - Alquiladora Romero",
       htmlContent: `
         <html>
-        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f5f5f5; padding: 20px;">
-          <div style="max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px; background-color: #fff; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
-            <div style="text-align: center; padding-bottom: 20px;">
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f9f9f9; padding: 20px;">
+          <div style="max-width: 600px; margin: auto; padding: 20px; border-radius: 8px; background-color: #fff; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);">
+            <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #eee;">
               <h1 style="color: #007BFF; margin: 0;">Alquiladora Romero</h1>
+              <p style="font-size: 14px; color: #666; margin: 5px 0;">Tu mejor aliado en renta de mobiliario</p>
             </div>
-            <div style="text-align: center; padding-bottom: 20px;">
-              <h2 style="color: #28A745; font-size: 24px; margin: 0;">Código de Verificación</h2>
+    
+            <div style="padding: 20px;">
+              <h2 style="color: #28A745; font-size: 24px; text-align: center;">Código de Verificación</h2>
+              <p style="font-size: 16px; text-align: center; color: #555; margin-top: 10px;">Hola <strong>${destinatario}</strong>,</p>
+              <p style="font-size: 16px; text-align: center; color: #555;">Gracias por confiar en nosotros. Para continuar con el proceso, ingresa el siguiente código en los próximos <strong style="color: #FF5722;">10 minutos</strong>:</p>
+    
+              <div style="margin: 20px auto; text-align: center;">
+                <p style="font-size: 32px; font-weight: bold; color: #007BFF; border: 2px dashed #007BFF; padding: 10px; border-radius: 8px; display: inline-block;">${shortUUID}</p>
+              </div>
+    
+              <p style="font-size: 14px; text-align: center; color: #888;">Si el código no se utiliza dentro del tiempo establecido, deberás solicitar uno nuevo.</p>
             </div>
-            <div style="text-align: center; padding: 10px 0;">
-              <p style="font-size: 18px; margin: 10px 0;">Hola, <strong>${destinatario}</strong></p>
-              <p style="font-size: 16px; margin: 10px 0;">Gracias por elegir Alquiladora Romero para tus necesidades de mobiliario.</p>
-              <p style="font-size: 16px; margin: 10px 0;">Por favor, utiliza el siguiente código para continuar con el proceso de verificación:</p>
-              <p style="font-size: 24px; font-weight: bold; color: #007BFF; margin: 20px 0;">${shortUUID}</p>
+    
+            <div style="margin-top: 20px; padding: 15px; background-color: #f1f1f1; border-radius: 8px; text-align: center;">
+              <p style="font-size: 14px; color: #555;">¿Tienes dudas? Contáctanos en:</p>
+              <p style="font-size: 14px; color: #555; margin: 5px 0;"><a href="mailto:alquiladoraromero@isoftuthh.com" style="color: #007BFF; text-decoration: none;">alquiladoraromero@isoftuthh.com</a></p>
             </div>
-
-            <!-- Redes Sociales -->
+    
             <div style="text-align: center; margin-top: 20px;">
               <p style="font-size: 14px; color: #555;">Síguenos en nuestras redes sociales:</p>
-              <div style="display: inline-block; padding: 10px;">
-                <a href="https://www.facebook.com/alquiladoraromero" target="_blank" style="text-decoration: none;">
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/5/51/Facebook_f_logo_%282019%29.svg" alt="Facebook" style="width: 30px; height: 30px; margin-right: 10px;" />
+              <div style="display: inline-flex; justify-content: center; gap: 15px; margin-top: 10px;">
+                <a href="https://www.facebook.com/ALQROMERO" target="_blank" style="text-decoration: none;">
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/5/51/Facebook_f_logo_%282019%29.svg" alt="Facebook" style="width: 30px; height: 30px;" />
                 </a>
-                <a href="https://www.instagram.com/alquiladoraromero" target="_blank" style="text-decoration: none;">
+                <a href="https://www.facebook.com/ALQROMERO" target="_blank" style="text-decoration: none;">
                   <img src="https://upload.wikimedia.org/wikipedia/commons/a/a5/Instagram_icon.png" alt="Instagram" style="width: 30px; height: 30px;" />
                 </a>
               </div>
             </div>
-
-            <div style="border-top: 1px solid #eee; padding-top: 20px; margin-top: 20px; text-align: center; font-size: 12px; color: #777;">
-              <p>Esta es una notificación automática, por favor no respondas a este correo.</p>
+    
+            <div style="border-top: 1px solid #eee; padding-top: 15px; margin-top: 20px; text-align: center; font-size: 12px; color: #777;">
+              <p>Este es un mensaje generado automáticamente. Por favor, no respondas a este correo.</p>
             </div>
           </div>
         </body>
@@ -234,6 +242,7 @@ emailRouter.post('/send',  async (req, res) => {
         'X-Priority': '1 (Highest)',
       },
     };
+    
   
     try {
       const response = await axios.post("https://api.brevo.com/v3/smtp/email", emailData, {
@@ -279,44 +288,50 @@ emailRouter.post('/send/recuperacion',  async (req, res) => {
     subject: "Recuperación de Contraseña - Código de Verificación",
     htmlContent: `
       <html>
-      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f9f9f9; padding: 20px;">
-        <div style="max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px; background-color: #fff; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
+      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f5f5f5; padding: 20px;">
+        <div style="max-width: 600px; margin: auto; padding: 20px; border-radius: 10px; background-color: #fff; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);">
           
-          <!-- Encabezado con logo y título -->
-          <div style="text-align: center; padding-bottom: 20px;">
+          <!-- Encabezado -->
+          <div style="text-align: center; padding: 20px; border-bottom: 2px solid #eee;">
             <h1 style="color: #007BFF; margin: 0;">Alquiladora Romero</h1>
-            <p style="color: #555;">Tu mejor opción en mobiliario</p>
+            <p style="color: #555; margin: 5px 0;">Tu mejor opción en renta de mobiliario</p>
           </div>
-          
-          <!-- Sección de contenido principal -->
-          <div style="text-align: center; padding-bottom: 20px;">
-            <h2 style="color: #28A745; font-size: 24px; margin: 0;">Recuperación de Contraseña</h2>
+  
+          <!-- Cuerpo del mensaje -->
+          <div style="padding: 20px; text-align: center;">
+            <h2 style="color: #28A745; font-size: 22px; margin-bottom: 20px;">Recuperación de Contraseña</h2>
+            <p style="font-size: 16px; margin: 0 0 10px;">Hola, <strong>${destinatario}</strong></p>
+            <p style="font-size: 16px; margin: 10px 0;">Hemos recibido una solicitud para restablecer tu contraseña.</p>
+            <p style="font-size: 16px; margin: 10px 0;">Ingresa el siguiente código de verificación:</p>
+            <div style="margin: 20px 0;">
+              <span style="font-size: 28px; font-weight: bold; color: #007BFF; border: 2px dashed #007BFF; padding: 10px 20px; border-radius: 5px;">${shortUUID}</span>
+            </div>
+            <p style="font-size: 16px; margin: 10px 0;">Este código tiene una validez de <strong style="color: #FF5722;">10 minutos</strong>.</p>
+            <p style="font-size: 16px; color: #FF0000; margin-top: 20px;">Si no realizaste esta solicitud, ignora este mensaje.</p>
           </div>
-          <div style="text-align: center; padding: 10px 0;">
-            <p style="font-size: 18px; margin: 10px 0;">Hola, <strong>${destinatario}</strong></p>
-            <p style="font-size: 16px; margin: 10px 0;">Has solicitado restablecer tu contraseña. Por favor, utiliza el siguiente código para continuar con el proceso:</p>
-            <p style="font-size: 24px; font-weight: bold; color: #007BFF; margin: 20px 0;">${shortUUID}</p>
-            <p style="font-size: 16px; margin: 10px 0;">Este código es válido por 15 minutos.</p>
-            <p style="font-size: 16px; margin: 10px 0; color: #FF0000;">Si no solicitaste este cambio, ignora este mensaje.</p>
+  
+          <!-- Botón de ayuda -->
+          <div style="text-align: center; margin: 20px 0;">
+            <a href="mailto:alquiladoraromero@isoftuthh.com" style="text-decoration: none; font-size: 16px; color: #fff; background-color: #007BFF; padding: 10px 20px; border-radius: 5px;">Contactar soporte</a>
           </div>
-          
+  
           <!-- Redes sociales -->
-          <div style="text-align: center; margin-top: 20px;">
+          <div style="text-align: center; margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px;">
             <p style="font-size: 14px; color: #555;">Síguenos en nuestras redes sociales:</p>
-            <div style="display: inline-block; padding: 10px;">
+            <div style="display: flex; justify-content: center; gap: 15px;">
               <a href="https://www.facebook.com/alquiladoraromero" target="_blank" style="text-decoration: none;">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/5/51/Facebook_f_logo_%282019%29.svg" alt="Facebook" style="width: 30px; height: 30px; margin-right: 10px;" />
+                <img src="https://upload.wikimedia.org/wikipedia/commons/5/51/Facebook_f_logo_%282019%29.svg" alt="Facebook" style="width: 30px; height: 30px;" />
               </a>
               <a href="https://www.instagram.com/alquiladoraromero" target="_blank" style="text-decoration: none;">
                 <img src="https://upload.wikimedia.org/wikipedia/commons/a/a5/Instagram_icon.png" alt="Instagram" style="width: 30px; height: 30px;" />
               </a>
             </div>
           </div>
-
+  
           <!-- Pie de página -->
-          <div style="border-top: 1px solid #eee; padding-top: 20px; margin-top: 20px; text-align: center; font-size: 12px; color: #777;">
-            <p>Esta es una notificación automática, por favor no respondas a este correo.</p>
-            <p>Alquiladora Romero, Calle Ejemplo #123, Ciudad, País</p>
+          <div style="text-align: center; margin-top: 20px; font-size: 12px; color: #777; border-top: 1px solid #eee; padding-top: 10px;">
+            <p>Este es un mensaje automático. Por favor, no respondas a este correo.</p>
+            <p>Alquiladora Romero | Calle Ejemplo #123, Ciudad, País</p>
           </div>
         </div>
       </body>
@@ -329,6 +344,7 @@ emailRouter.post('/send/recuperacion',  async (req, res) => {
       'X-Priority': '1 (Highest)',
     },
   };
+  
 
   try {
     const response = await axios.post("https://api.brevo.com/v3/smtp/email", emailData, {
@@ -399,14 +415,36 @@ emailRouter.post('/cambiarpass',  async (req, res) => {
     const emailData = {
       sender: { name: "Alquiladora Romero", email: "alquiladoraromero@isoftuthh.com" },
       to: [{ email: correo, name: destinatario }],
-      subject: "Código de verificación",
+      subject: "Cambio de Contraseña - Código de Verificación",
       htmlContent: `
         <html>
-        <body style="font-family: Arial, sans-serif;">
-          <h2>Código de Verificación</h2>
-          <p>Hola, <strong>${destinatario}</strong></p>
-          <p>Por favor, utiliza el siguiente código para continuar con el proceso de verificación:</p>
-          <p style="font-size: 24px; font-weight: bold;">${shortUUID}</p>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f5f5f5; padding: 20px;">
+          <div style="max-width: 600px; margin: auto; padding: 20px; border-radius: 8px; background-color: #fff; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);">
+            
+            <!-- Encabezado -->
+            <div style="text-align: center; padding: 20px; border-bottom: 2px solid #eee;">
+              <h1 style="color: #007BFF; margin: 0;">Alquiladora Romero</h1>
+              <p style="font-size: 14px; color: #666;">Solicitud de cambio de contraseña</p>
+            </div>
+    
+            <!-- Contenido Principal -->
+            <div style="padding: 20px; text-align: center;">
+              <h2 style="color: #28A745; font-size: 22px; margin-bottom: 20px;">Código de Verificación</h2>
+              <p style="font-size: 16px; margin: 0 0 10px;">Hola, <strong>${destinatario}</strong></p>
+              <p style="font-size: 16px; margin: 10px 0;">Hemos recibido tu solicitud para cambiar la contraseña. Por favor, utiliza el siguiente código:</p>
+              <div style="margin: 20px 0;">
+                <span style="font-size: 28px; font-weight: bold; color: #007BFF; border: 2px dashed #007BFF; padding: 10px 20px; border-radius: 5px;">${shortUUID}</span>
+              </div>
+              <p style="font-size: 16px; margin: 10px 0;">Este código es válido por <strong style="color: #FF5722;">10 minutos</strong>.</p>
+              <p style="font-size: 14px; color: #FF0000; margin-top: 20px;">Si no solicitaste este cambio, ignora este mensaje.</p>
+            </div>
+    
+            <!-- Pie de página -->
+            <div style="text-align: center; margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px;">
+              <p style="font-size: 14px; color: #777;">Este es un mensaje automático, por favor no respondas a este correo.</p>
+              <p style="font-size: 12px; color: #999;">Alquiladora Romero | Calle Ejemplo #123, Ciudad, País</p>
+            </div>
+          </div>
         </body>
         </html>
       `,
@@ -415,7 +453,7 @@ emailRouter.post('/cambiarpass',  async (req, res) => {
         'X-Priority': '1 (Highest)',
       },
     };
-
+    
     // Envío del correo
     await axios.post("https://api.brevo.com/v3/smtp/email", emailData, {
       headers: {
