@@ -11,6 +11,7 @@ const helmet = require("helmet");
 const path = require('path'); 
 const fs = require('fs');
 const rateLimit = require("express-rate-limit");
+const zlib = require('zlib');
 
 
 
@@ -26,11 +27,17 @@ const terminos= require('./consultas/terminos');
 const deslin= require("./consultas/deslin");
 
 
+const logDirectory = path.join(__dirname, 'logs');
+if (!fs.existsSync(logDirectory)) {
+  fs.mkdirSync(logDirectory);
+}
+
+
 // Winston: Rotación diaria de logs
 const transport = new winston.transports.DailyRotateFile({
-  filename: 'logs/error-%DATE%.log',
+  filename: path.join(logDirectory, 'error-%DATE%.log'),
   datePattern: 'YYYY-MM-DD',
-  zippedArchive: true,
+  zippedArchive: true, // Los archivos de log serán comprimidos
   maxSize: '20m',
   maxFiles: '14d',
 });
@@ -147,6 +154,13 @@ app.post("/api/logError", (req, res) => {
 app.get('/api/logs', async (req, res) => {
   try {
     const logDirectory = path.join(__dirname, 'logs');
+
+    // Verificar si el directorio de logs existe
+    if (!fs.existsSync(logDirectory)) {
+      console.error('El directorio de logs no existe:', logDirectory);
+      return res.status(500).json({ message: 'No se encontró el directorio de logs.' });
+    }
+
     const logFiles = fs.readdirSync(logDirectory).sort((a, b) => {
       return fs.statSync(path.join(logDirectory, b)).mtime - fs.statSync(path.join(logDirectory, a)).mtime;
     });
@@ -156,8 +170,26 @@ app.get('/api/logs', async (req, res) => {
 
     for (const file of logFiles) {
       const logPath = path.join(logDirectory, file);
-      const content = fs.readFileSync(logPath, 'utf-8');
-      const lines = content.split('\n').filter(line => line).map(line => JSON.parse(line));
+      let content;
+
+      if (file.endsWith('.gz')) {
+        // Si el archivo está comprimido, lo descomprimimos
+        const compressedData = fs.readFileSync(logPath);
+        content = zlib.gunzipSync(compressedData).toString('utf-8');
+      } else {
+        // Si el archivo no está comprimido, lo leemos normalmente
+        content = fs.readFileSync(logPath, 'utf-8');
+      }
+
+      const lines = content.split('\n').filter(line => line).map(line => {
+        try {
+          return JSON.parse(line);
+        } catch (err) {
+          console.error('Error al parsear línea de log:', err);
+          return null; 
+        }
+      }).filter(line => line !== null);
+
       logs.push(...lines);
       if (logs.length >= maxLogs) break;
     }

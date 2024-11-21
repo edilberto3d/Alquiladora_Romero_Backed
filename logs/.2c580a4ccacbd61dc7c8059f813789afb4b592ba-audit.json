@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "C:\\Users\\edilb\\Documents\\uthh\\Septimo_cuetrimestre\\Seguridad informatica\\Proyecto_p1\\server\\logs\\.2c580a4ccacbd61dc7c8059f813789afb4b592ba-audit.json",
+    "files": [
+        {
+            "date": 1732172222355,
+            "name": "C:\\Users\\edilb\\Documents\\uthh\\Septimo_cuetrimestre\\Seguridad informatica\\Proyecto_p1\\server\\logs\\error-2024-11-21.log",
+            "hash": "bedc1589ffb10ea892a38558023ceffedc5a4bcf3f9878ae9dfc767d40fcf79e"
+        }
+    ],
+    "hashType": "sha256"
+}

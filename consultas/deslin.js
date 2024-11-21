@@ -39,6 +39,8 @@ deslindeLegalRouter.get('/vigente', async (req, res) => {
   }
 });
 
+
+
 // Obtener un documento por su ID
 deslindeLegalRouter.get('/:id', async (req, res) => {
   const { id } = req.params;
