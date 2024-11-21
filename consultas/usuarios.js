@@ -321,7 +321,7 @@ usuarioRouter.get("/usuarios-sospechosos", async (req, res) => {
       `SELECT u.idUsuarios, u.Nombre, u.ApellidoP, u.Correo, b.intentos AS Intentos, b.intentosReales AS IntentosReales, b.bloqueado
        FROM tblusuarios u
        JOIN tblipbloqueados b ON u.idUsuarios = b.idUsuarios
-       WHERE b.intentos >= ? OR b.bloqueado = TRUE`,
+       WHERE b.intentosReales >= ? OR b.bloqueado = TRUE`,
       [MAX_FAILED_ATTEMPTS]
     );
     res.status(200).json(usuarios);
@@ -336,7 +336,7 @@ usuarioRouter.post("/bloquear/:idUsuario", async (req, res) => {
 
   try {
     await req.db.query(
-      `UPDATE tblipbloqueados bloqueado = TRUE WHERE idUsuarios = ?`,
+      `UPDATE tblipbloqueados SET bloqueado = TRUE WHERE idUsuarios = ?`,
       [idUsuario]
     );
     res.status(200).json({ message: "Usuario bloqueado manualmente." });
