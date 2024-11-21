@@ -316,13 +316,19 @@ if (bloqueos.length > 0) {
 
 //==================================================SOSPECHOSOS
 usuarioRouter.get("/usuarios-sospechosos", async (req, res) => {
+  // Obtenemos el parámetro 'minIntentos' de la consulta o usamos el valor por defecto
+  const minIntentosReales = parseInt(req.query.minIntentos) || MAX_FAILED_ATTEMPTS;
+
   try {
     const [usuarios] = await req.db.query(
-      `SELECT u.idUsuarios, u.Nombre, u.ApellidoP, u.Correo, b.intentos AS Intentos, b.intentosReales AS IntentosReales, b.bloqueado
+      `SELECT u.idUsuarios, u.Nombre, u.ApellidoP, u.Correo,
+              b.intentos AS Intentos,
+              b.intentosReales AS IntentosReales,
+              b.bloqueado
        FROM tblusuarios u
        JOIN tblipbloqueados b ON u.idUsuarios = b.idUsuarios
        WHERE b.intentosReales >= ? OR b.bloqueado = TRUE`,
-      [MAX_FAILED_ATTEMPTS]
+      [minIntentosReales]
     );
     res.status(200).json(usuarios);
   } catch (error) {
